@@ -2,6 +2,14 @@
 
 A React prototype for a boba shop with a portal hub, manager dashboard, cashier screen, and customer kiosk. The cashier and kiosk support sample drink selection and an in-browser order summary; shop data is currently static.
 
+## Source layout
+
+- `src/pages/` contains one component per screen: portal, manager dashboard, cashier, and customer kiosk.
+- `src/components/` contains shared interface components, including the header, drink menu, and order summary.
+- `src/hooks/useOrder.js` contains the shared in-browser order state.
+- `src/data/shop.js` contains the sample drinks and portal links.
+- `src/App.jsx` handles hash-based routing and wraps each screen in the shared layout.
+
 ## Run locally
 
 ```sh
