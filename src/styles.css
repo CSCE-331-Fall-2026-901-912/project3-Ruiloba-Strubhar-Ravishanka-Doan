@@ -27,8 +27,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #d98b81; outline-offs
 .brand-mark { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: white; background: #738873; font-size: 24px; font-style: italic; }
 .brand small { display: block; margin-top: 5px; font-family: "DM Sans", sans-serif; font-size: 8px; letter-spacing: 2px; color: #938b7f; }
 .top-links { height: 100%; display: flex; align-items: center; gap: 26px; }
-.top-links a { height: 100%; display: flex; align-items: center; border-bottom: 2px solid transparent; color: #77716a; font-size: 12px; white-space: nowrap; }
-.top-links a:hover, .top-links a.active { color: var(--ink); border-color: #70836f; }
+.top-links a, .top-links span { height: 100%; display: flex; align-items: center; border-bottom: 2px solid transparent; color: #77716a; font-size: 12px; white-space: nowrap; }
+.top-links a:hover, .top-links .active { color: var(--ink); border-color: #70836f; }
 .open-status { display: flex; align-items: center; gap: 7px; color: #625e58; font-size: 11px; white-space: nowrap; }
 .open-status > span:first-child { width: 7px; height: 7px; border-radius: 50%; background: #78a377; }
 .status-hours { color: #a19a91; }

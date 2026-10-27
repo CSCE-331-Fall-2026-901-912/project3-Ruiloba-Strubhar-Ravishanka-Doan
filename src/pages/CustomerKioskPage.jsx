@@ -24,7 +24,7 @@ export default function CustomerKioskPage() {
         </section>
         <OrderSummary order={order} onCheckout={checkout} checkoutLabel="Place my order" />
       </div>
-      <footer className="footer"><span>Need a hand? Our team is right over there <span className="pink">♥</span></span><a href="#/">Staff portal</a></footer>
+      <footer className="footer"><span>Need a hand? Our team is right over there <span className="pink">♥</span></span></footer>
     </main>
   );
 }

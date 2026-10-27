@@ -12,21 +12,22 @@ const pages = {
 };
 
 export default function App() {
-  const [route, setRoute] = useState(() => window.location.hash.replace(/^#\/?/, "").split("/")[0] || "home");
+  const [current, setCurrent] = useState("home");
 
   useEffect(() => {
-    const updateRoute = () => setRoute(window.location.hash.replace(/^#\/?/, "").split("/")[0] || "home");
-    window.addEventListener("hashchange", updateRoute);
-    return () => window.removeEventListener("hashchange", updateRoute);
+    if (window.location.hash) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    }
   }, []);
 
-  const current = Object.hasOwn(pages, route) ? route : "home";
   const Page = pages[current] || PortalPage;
 
   return (
     <div className={`app app-${current}`}>
       <Header current={current} />
-      <div className="page-shell"><Page /></div>
+      <div className="page-shell">
+        {current === "home" ? <PortalPage onNavigate={setCurrent} /> : <Page />}
+      </div>
     </div>
   );
 }

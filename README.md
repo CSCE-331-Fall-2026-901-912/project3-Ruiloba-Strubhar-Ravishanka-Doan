@@ -8,7 +8,7 @@ A React prototype for a boba shop with a portal hub, manager dashboard, cashier 
 - `src/components/` contains shared interface components, including the header, drink menu, and order summary.
 - `src/hooks/useOrder.js` contains the shared in-browser order state.
 - `src/data/shop.js` contains the sample drinks and portal links.
-- `src/App.jsx` handles hash-based routing and wraps each screen in the shared layout.
+- `src/App.jsx` handles portal-only in-app navigation and wraps each screen in the shared layout. Refreshing returns to the portal; screens are not restored from the URL.
 
 ## Run locally
 

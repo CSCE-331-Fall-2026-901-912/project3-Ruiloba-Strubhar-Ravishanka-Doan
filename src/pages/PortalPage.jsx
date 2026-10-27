@@ -1,7 +1,7 @@
 import React from "react";
 import { views } from "../data/shop.js";
 
-export default function PortalPage() {
+export default function PortalPage({ onNavigate }) {
   return (
     <>
       <section className="welcome-panel">
@@ -9,7 +9,7 @@ export default function PortalPage() {
           <p className="eyebrow">YOUR LITTLE CORNER OF BOBA</p>
           <h1>Good things<br />are brewing<span>.</span></h1>
           <p>Welcome to Boba Bloom. Pick a view to jump into your day.</p>
-          <a className="button button-dark" href="#/manager">Head to the dashboard <span>→</span></a>
+          <a className="button button-dark" href="#/manager" onClick={(event) => { event.preventDefault(); onNavigate("manager"); }}>Head to the dashboard <span>→</span></a>
         </div>
         <div className="welcome-art" aria-hidden="true">
           <div className="sun-shape" />
@@ -26,7 +26,7 @@ export default function PortalPage() {
         </div>
         <div className="portal-grid">
           {views.map((view, index) => (
-            <a className={`portal-card portal-${view.id}`} href={`#/${view.id}`} key={view.id}>
+            <a className={`portal-card portal-${view.id}`} href={`#/${view.id}`} key={view.id} onClick={(event) => { event.preventDefault(); onNavigate(view.id); }}>
               <div className="card-top"><span className="view-icon">{view.icon}</span><span className="card-arrow">↗</span></div>
               <p className="eyebrow">0{index + 1} / {view.id.toUpperCase()}</p>
               <h3>{view.label}</h3><p className="muted">{view.description}</p>
