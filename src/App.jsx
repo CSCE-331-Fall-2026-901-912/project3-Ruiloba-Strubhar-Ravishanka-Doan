@@ -26,9 +26,6 @@ function Header({ current }) {
       </a>
       <nav className="top-links" aria-label="Main navigation">
         <a className={current === "home" ? "active" : ""} href="#/">Portal</a>
-        {views.map((view) => (
-          <a className={current === view.id ? "active" : ""} href={`#/${view.id}`} key={view.id}>{view.label}</a>
-        ))}
       </nav>
       <div className="open-status"><span /> Open today <span className="status-hours">· 10am–9pm</span></div>
     </header>
