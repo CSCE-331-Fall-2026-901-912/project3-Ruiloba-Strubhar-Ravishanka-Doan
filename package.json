@@ -4,16 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "server": "node server.js",
+    "client": "vite",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "vite build",
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^5.1.0",
+    "pg": "^8.23.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.5",
     "vite": "^6.3.5"
   }
 }
