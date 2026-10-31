@@ -28,20 +28,15 @@ app.get("/api/health", (_request, response) => {
   response.json({ status: "ok" });
 });
 
-// GET API: Fetches plain menu entries directly from your VARCHAR schema layout
-//app.get('/api/menu', async (req, res) => {
-  app.get(['/api/menu', '/api/kiosk/menu'], async (req, res) => {
+// GET API: Fetch menu items for the website and kiosk
+app.get(['/api/menu', '/api/kiosk/menu'], async (req, res) => {
   try {
+    /* 🌟 FIXED: Unified into a single route handler that joins against 'M_cups' 
+       to bypass the string name/underscore formatting mismatch between tables */
     const query = `
-      SELECT 
-        itemid,
-        item_name,
-        item_cal,
-        item_cost,
-        item_category,
-        base_item_type,
-        1 as inventory_count
-      FROM menu
+      SELECT m.*, COALESCE(i.supply_qty, 100) as inventory_count 
+      FROM menu m
+      LEFT JOIN inventory i ON i.supply_name = 'M_cups'
     `;
     const result = await pool.query(query);
     //res.json(result.rows);
@@ -127,6 +122,7 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
+// Fallback static resource router pipeline layer
 app.use(express.static(buildDirectory));
 app.get(/.*/, (_request, response) => {
   response.sendFile(path.join(buildDirectory, "index.html"));

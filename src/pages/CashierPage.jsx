@@ -154,6 +154,9 @@ export default function CashierPage() {
       if (response.ok) {
         setMessage(`Order placed successfully! ${order.count} ${order.count === 1 ? "drink is" : "drinks are"} on the way.`);
         order.clear();
+
+        // Scroll the entire window/page back to the top cleanly
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         alert("Server failed to accept ticket parameters.");
       }
@@ -199,20 +202,31 @@ export default function CashierPage() {
     <main className="content-page" style={{ padding: "20px", fontFamily: "sans-serif" }}>
       {/* Visual Notification System Banner */}
       {message && (
-        <div className="success-message" style={{ background: "#d4edda", color: "#155724", padding: "15px", marginBottom: "20px", borderRadius: "5px", position: "relative" }}>
+        <div
+          className="success-message"
+          style={{
+            background: "#d4edda",
+            color: "#155724",
+            padding: "15px",
+            marginBottom: "20px",
+            borderRadius: "5px",
+            position: "relative",
+            fontSize: "24px"
+          }}
+        >
           <span>{message}</span>
-          <button onClick={() => setMessage("")} style={{ position: "absolute", right: "15px", background: "none", border: "none", fontSize: "26px", cursor: "pointer" }}>×</button>
+          <button onClick={() => setMessage("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: "26px", cursor: "pointer" }}>×</button>
         </div>
       )}
 
-      <div className="pos-layout" style={{ display: "flex", gap: "30px" }}>
+      <div className="pos-layout" style={{ display: "flex", gap: "30px", alignItems: "flex-start" }}>
 
         {/* LEFT COLUMN: FILTER CONTROLS & DRIVE DRINK BUTTON SELECTION GRID */}
         <section className="menu-section" style={{ flex: "2" }}>
-          <h2>Front Counter Register Menu</h2>
+          <h2 style={{ textAlign: "center", marginBottom: "20px", fontSize: "50px" }}>Cashier Counter</h2>
 
           {/* Subheading Group 1: Category Mapping Selectors */}
-          <div className="filter-group-row" style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+          <div className="filter-group-row" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginBottom: "12px" }}>
             {["All Drinks", "Milk Tea", "Green Tea", "Lemonade", "Slush", "Milk Strike", "Black Tea", "Regular Menu", "Seasonal Menu"].map((type) => (
               <button
                 key={type}
@@ -221,7 +235,7 @@ export default function CashierPage() {
                   padding: "8px 14px",
                   borderRadius: "20px",
                   border: "1px solid black",
-                  background: categoryFilter === type ? "#1E221D" : "#fff",
+                  background: categoryFilter === type ? "#9b82c6" : "#fff",
                   color: categoryFilter === type ? "#fff" : "#000",
                   fontWeight: "bold",
                   cursor: "pointer"
@@ -233,13 +247,23 @@ export default function CashierPage() {
           </div>
 
           {/* Subheading Group 2: Sorting and Stock Condition Toggles */}
-          <div className="filter-group-row" style={{ display: "flex", gap: "10px", marginBottom: "25px" }}>
+          <div className="filter-group-row" style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "25px" }}>
             <button
               onClick={() => setSortFilter(sortFilter === "Alphabetical" ? "Reverse Alphabetical" : "Alphabetical")}
-              style={{ padding: "8px 12px", border: "1px solid #ccc", background: "#fff", cursor: "pointer", borderRadius: "4px" }}
+              style={{
+                padding: "8px 12px",
+                border: "1px solid #ccc",
+                background: sortFilter === "Reverse Alphabetical" ? "#D065A1" : "#F4DBE9",
+                color: sortFilter === "Reverse Alphabetical" ? "#fff" : "#000",
+                fontWeight: sortFilter === "Reverse Alphabetical" ? "bold" : "normal",
+                cursor: "pointer",
+                borderRadius: "4px"
+              }}
             >
               Sort: {sortFilter === "Alphabetical" ? "A-Z Order" : "Z-A Order"}
             </button>
+
+
             <button
               onClick={() => setAvailabilityFilter(availabilityFilter === "All" ? "Available Only" : "All")}
               style={{
@@ -247,7 +271,7 @@ export default function CashierPage() {
                 border: "1px solid #ccc",
                 borderRadius: "4px",
                 cursor: "pointer",
-                background: availabilityFilter === "Available Only" ? "#dc3545" : "#fff",
+                background: availabilityFilter === "Available Only" ? "#D065A1" : "#F4DBE9",
                 color: availabilityFilter === "Available Only" ? "#fff" : "#000",
                 fontWeight: availabilityFilter === "Available Only" ? "bold" : "normal"
               }}
@@ -305,8 +329,8 @@ export default function CashierPage() {
                   </div>
 
                   <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                    <strong style={{ fontSize: "15px", color: "black", display: "block" }}>{drink.item_name || "Unnamed Drink"}</strong>
-                    <div style={{ marginTop: "4px", fontSize: "14px", color: "#333", fontWeight: "600" }}>${parseFloat(drink.item_cost || 0).toFixed(2)}</div>
+                    <strong style={{ fontSize: "20px", color: "black", display: "block" }}>{drink.item_name || "Unnamed Drink"}</strong>
+                    <div style={{ marginTop: "4px", fontSize: "16px", color: "#333", fontWeight: "600" }}>${parseFloat(drink.item_cost || 0).toFixed(2)}</div>
                     {isOutOfStock && <small style={{ color: "red", fontWeight: "bold" }}><br />OUT OF STOCK</small>}
                   </div>
 
@@ -344,8 +368,10 @@ export default function CashierPage() {
         </section>
 
         {/* RIGHT COLUMN: REAL-TIME TICKET RECEIPT & COST CALCULATIONS */}
-        <section className="order-summary-pane" style={{ flex: "1", borderLeft: "1px solid #ccc", paddingLeft: "20px", background: "#f9f9f9", borderRadius: "8px", padding: "15px" }}>
-          <h3>Current Ticket ({order.count} drinks)</h3>
+        <section className="order-summary-pane" style={{ flex: "1", borderLeft: "1px solid #ccc", paddingLeft: "20px", background: "#f9f9f9", borderRadius: "8px", padding: "15px", position: "sticky", top: "20px" }}>
+          <h3 style={{ textAlign: "center", width: "100%", margin: "10px 0 20px 0", fontSize: "28px" }}>
+            Current Ticket ({order.count} drinks)
+          </h3>
 
           <div className="ticket-items-list" style={{ minHeight: "220px", marginBottom: "20px" }}>
             {order.items.map((item, idx) => (
@@ -363,44 +389,89 @@ export default function CashierPage() {
                 }}
               >
                 {/* INLINE DRINK EMOJI BOX */}
-                <div style={{ width: "40px", height: "40px", borderRadius: "8px", backgroundColor: "#F5F5F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "8px", backgroundColor: "#F5F5F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "25px", flexShrink: 0 }}>
                   {getDrinkEmoji(item.drink_name)}
                 </div>
 
                 <div style={{ flexGrow: 1 }}>
-                  <h4 style={{ margin: "0 0 2px 0", fontSize: "14px", fontWeight: "600" }}>{item.drink_name || item.item_name}</h4>
-                  <span style={{ fontSize: "12px", color: "#888" }}>${parseFloat(item.item_cost || 0).toFixed(2)} each · Size: {item.size}</span>
-                  {item.topping !== "None" && <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>+ Topping: {item.topping}</div>}
+                  <h4 style={{ margin: "0 0 2px 0", fontSize: "18px", fontWeight: "600" }}>{item.drink_name || item.item_name}</h4>
+                  <span style={{ fontSize: "16px", color: "#888" }}>${parseFloat(item.item_cost || 0).toFixed(2)} each · Size: {item.size}</span>
+                  {item.topping !== "None" && <div style={{ fontSize: "16px", color: "#666", marginTop: "2px" }}>+ Topping: {item.topping}</div>}
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #EBEAE6", borderRadius: "20px", padding: "4px 8px", height: "28px" }} onClick={(e) => e.stopPropagation()}>
-                  <button style={{ border: "none", background: "none", cursor: "pointer", fontWeight: "bold" }} onClick={() => order.decrementQuantity(idx)}>-</button>
-                  <span style={{ fontSize: "13px", fontWeight: "600" }}>{item.quantity}</span>
-                  <button style={{ border: "none", background: "none", cursor: "pointer", fontWeight: "bold" }} onClick={() => order.incrementQuantity(idx)}>+</button>
+                <div style={{ display: "flex", alignItems: "center", gap: "20px", border: "1px solid #EBEAE6", borderRadius: "20px", padding: "4px 8px", height: "28px" }} onClick={(e) => e.stopPropagation()}>
+
+                  {/* MINUS BUTTON: Styled with Blue Background, White Text, and Circular Proportions */}
+                  <button
+                    style={{
+                      border: "none",
+                      background: "#276ab3", // Your blue color hex code
+                      color: "#ffffff",      // White font
+                      width: "30px",         // Uniform box width
+                      height: "30px",        // Uniform box height
+                      borderRadius: "50%",   // Makes the button a perfect circle
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      fontSize: "18px"
+                    }}
+                    onClick={() => order.decrementQuantity(idx)}
+                  >
+                    -
+                  </button>
+
+                  <span style={{ fontSize: "18px", fontWeight: "600" }}>{item.quantity}</span>
+
+                  {/*PLUS BUTTON: Styled identically to match perfectly */}
+                  <button
+                    style={{
+                      border: "none",
+                      background: "#276ab3", // Your blue color hex code
+                      color: "#ffffff",      // White font
+                      width: "30px",         // Uniform box width
+                      height: "30px",        // Uniform box height
+                      borderRadius: "50%",   // Makes the button a perfect circle
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      fontSize: "18px"
+                    }}
+                    onClick={() => order.incrementQuantity(idx)}
+                  >
+                    +
+                  </button>
+
                 </div>
+
+
+
               </div>
             ))}
           </div>
 
           <div className="pricing-breakdown" style={{ borderTop: "2px solid #ccc", paddingTop: "12px", lineHeight: "1.8" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal:</span><span>${order.subtotal.toFixed(2)}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}><span>Tax:</span><span>${order.tax.toFixed(2)}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "20px" }}><span>Subtotal:</span><span>${order.subtotal.toFixed(2)}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "20px" }}><span>Tax:</span><span>${order.tax.toFixed(2)}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "20px" }}>
               <span>Tip Added:</span>
               <span style={{ fontWeight: "600" }}>${order.tip.toFixed(2)}</span>
             </div>
 
-            <button onClick={() => setShowTipModal(true)} style={{ width: "100%", margin: "8px 0", padding: "10px", background: "#E6DCFA", border: "1px solid #A594CD", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", fontSize: "16px" }}>
+            <button onClick={() => setShowTipModal(true)} style={{ width: "100%", margin: "8px 0", padding: "10px", background: "#E6DCFA", border: "1px solid #A594CD", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", fontSize: "18px" }}>
               Modify Tip Options
             </button>
 
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "18px", fontWeight: "bold", borderTop: "1px solid #ccc", paddingTop: "8px", marginTop: "4px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "24px", fontWeight: "bold", borderTop: "1px solid #ccc", paddingTop: "8px", marginTop: "4px" }}>
               <span>Total:</span><span>${order.total.toFixed(2)}</span>
             </div>
           </div>
 
-          <button onClick={handleCheckout} disabled={order.items.length === 0} style={{ width: "100%", padding: "14px", background: order.items.length === 0 ? "#6c757d" : "#28a745", color: "#fff", border: "none", borderRadius: "5px", fontSize: "16px", fontWeight: "bold", cursor: order.items.length === 0 ? "not-allowed" : "pointer", marginTop: "15px" }}>
-            Place Guest Order
+          <button onClick={handleCheckout} disabled={order.items.length === 0} style={{ width: "100%", padding: "14px", background: order.items.length === 0 ? "#051650" : "#28a745", color: "#fff", border: "none", borderRadius: "5px", fontSize: "24px", fontWeight: "bold", cursor: order.items.length === 0 ? "not-allowed" : "pointer", marginTop: "15px" }}>
+            Place Customer Order
           </button>
         </section>
       </div>
@@ -412,17 +483,17 @@ export default function CashierPage() {
             <h3>{editingIndex !== null ? `Edit: ${activeCustomization.item_name}` : `Customize: ${activeCustomization.item_name}`}</h3>
 
             <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", marginBottom: "8px" }}><strong>Select Dimensions (Size)</strong></label>
+              <label style={{ display: "block", marginBottom: "8px" }}><strong>Select Size</strong></label>
               <div style={{ display: "flex", gap: "12px" }}>
-                <button onClick={() => setSelectedSize("M")} style={{ flex: 1, padding: "12px", background: selectedSize === "M" ? "#1E221D" : "#fff", color: selectedSize === "M" ? "#fff" : "#000", border: "1px solid #EBEAE6", borderRadius: "8px", cursor: "pointer", fontWeight: "500" }}>Medium (M)</button>
-                <button onClick={() => setSelectedSize("L")} style={{ flex: 1, padding: "12px", background: selectedSize === "L" ? "#1E221D" : "#fff", color: selectedSize === "L" ? "#fff" : "#000", border: "1px solid #EBEAE6", borderRadius: "8px", cursor: "pointer", fontWeight: "500" }}>Large (L) (+$0.50)</button>
+                <button onClick={() => setSelectedSize("M")} style={{ flex: 1, padding: "12px", background: selectedSize === "M" ? "#1E221D" : "#fff", color: selectedSize === "M" ? "#fff" : "#000", border: "1px solid #EBEAE6", borderRadius: "8px", cursor: "pointer", fontWeight: "500" }}>Medium</button>
+                <button onClick={() => setSelectedSize("L")} style={{ flex: 1, padding: "12px", background: selectedSize === "L" ? "#1E221D" : "#fff", color: selectedSize === "L" ? "#fff" : "#000", border: "1px solid #EBEAE6", borderRadius: "8px", cursor: "pointer", fontWeight: "500" }}>Large (+$0.50)</button>
               </div>
             </div>
 
             <div style={{ marginBottom: "25px" }}>
-              <label style={{ display: "block", marginBottom: "8px" }}><strong>Select Standard Topping Addon</strong></label>
+              <label style={{ display: "block", marginBottom: "8px" }}><strong>Select Topping</strong></label>
               <select value={selectedTopping} onChange={(e) => setSelectedTopping(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: "8px", fontSize: "14px", border: "1px solid #EBEAE6", backgroundColor: "#fff" }}>
-                <option value="None">No Topping Addon</option>
+                <option value="None">No Topping</option>
                 {toppingsList.map((top) => (
                   <option key={top.itemid || Math.random()} value={top.item_name}>{top.item_name} (+${parseFloat(top.item_cost || 0).toFixed(2)})</option>
                 ))}
