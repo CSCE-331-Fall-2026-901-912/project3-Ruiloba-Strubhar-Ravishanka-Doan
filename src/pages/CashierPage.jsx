@@ -154,6 +154,9 @@ export default function CashierPage() {
       if (response.ok) {
         setMessage(`Order placed successfully! ${order.count} ${order.count === 1 ? "drink is" : "drinks are"} on the way.`);
         order.clear();
+
+        // Scroll the entire window/page back to the top cleanly
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         alert("Server failed to accept ticket parameters.");
       }
@@ -199,13 +202,24 @@ export default function CashierPage() {
     <main className="content-page" style={{ padding: "20px", fontFamily: "sans-serif" }}>
       {/* Visual Notification System Banner */}
       {message && (
-        <div className="success-message" style={{ background: "#d4edda", color: "#155724", padding: "15px", marginBottom: "20px", borderRadius: "5px", position: "relative" }}>
+        <div
+          className="success-message"
+          style={{
+            background: "#d4edda",
+            color: "#155724",
+            padding: "15px",
+            marginBottom: "20px",
+            borderRadius: "5px",
+            position: "relative",
+            fontSize: "24px"
+          }}
+        >
           <span>{message}</span>
-          <button onClick={() => setMessage("")} style={{ position: "absolute", right: "15px", background: "none", border: "none", fontSize: "26px", cursor: "pointer" }}>×</button>
+          <button onClick={() => setMessage("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: "26px", cursor: "pointer" }}>×</button>
         </div>
       )}
 
-      <div className="pos-layout" style={{ display: "flex", gap: "30px" }}>
+      <div className="pos-layout" style={{ display: "flex", gap: "30px", alignItems: "flex-start" }}>
 
         {/* LEFT COLUMN: FILTER CONTROLS & DRIVE DRINK BUTTON SELECTION GRID */}
         <section className="menu-section" style={{ flex: "2" }}>
@@ -354,7 +368,7 @@ export default function CashierPage() {
         </section>
 
         {/* RIGHT COLUMN: REAL-TIME TICKET RECEIPT & COST CALCULATIONS */}
-        <section className="order-summary-pane" style={{ flex: "1", borderLeft: "1px solid #ccc", paddingLeft: "20px", background: "#f9f9f9", borderRadius: "8px", padding: "15px" }}>
+        <section className="order-summary-pane" style={{ flex: "1", borderLeft: "1px solid #ccc", paddingLeft: "20px", background: "#f9f9f9", borderRadius: "8px", padding: "15px", position: "sticky", top: "20px" }}>
           <h3 style={{ textAlign: "center", width: "100%", margin: "10px 0 20px 0", fontSize: "28px" }}>
             Current Ticket ({order.count} drinks)
           </h3>
