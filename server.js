@@ -29,7 +29,8 @@ app.get("/api/health", (_request, response) => {
 });
 
 // GET API: Fetches plain menu entries directly from your VARCHAR schema layout
-app.get('/api/menu', async (req, res) => {
+//app.get('/api/menu', async (req, res) => {
+  app.get(['/api/menu', '/api/kiosk/menu'], async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -43,7 +44,22 @@ app.get('/api/menu', async (req, res) => {
       FROM menu
     `;
     const result = await pool.query(query);
-    res.json(result.rows);
+    //res.json(result.rows);
+    if (req.path === '/api/kiosk/menu') {
+      const drinks = result.rows.filter(
+        item =>
+          item.item_category === 'base_drink' ||
+          item.item_category === 'seasonal_drink'
+      );
+
+      const toppings = result.rows.filter(
+        item => item.item_category === 'topping'
+      );
+
+      res.json({ drinks, toppings });
+    } else {
+      res.json(result.rows);
+    }
   } catch (err) {
     console.error("Database selection runtime failure:", err);
     res.status(500).json({ error: 'Failed to retrieve menu rows' });
