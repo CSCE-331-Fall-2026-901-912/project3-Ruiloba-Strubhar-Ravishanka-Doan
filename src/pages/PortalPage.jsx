@@ -9,7 +9,6 @@ export default function PortalPage({ onNavigate }) {
           <p className="eyebrow">YOUR LITTLE CORNER OF BOBA</p>
           <h1>Good things<br />are brewing<span>.</span></h1>
           <p>Welcome to Boba Bloom. Pick a view to jump into your day.</p>
-          <a className="button button-dark" href="#/manager" onClick={(event) => { event.preventDefault(); onNavigate("manager"); }}>Head to the dashboard <span>→</span></a>
         </div>
         <div className="welcome-art" aria-hidden="true">
           <div className="sun-shape" />

@@ -33,13 +33,13 @@ button:focus-visible, a:focus-visible { outline: 3px solid #d98b81; outline-offs
 .open-status > span:first-child { width: 7px; height: 7px; border-radius: 50%; background: #78a377; }
 .status-hours { color: #a19a91; }
 .page-shell { width: min(1200px, 89%); margin: 0 auto; }
-.welcome-panel { min-height: 372px; margin-top: 40px; padding: 48px 66px; display: grid; grid-template-columns: 1fr 0.85fr; overflow: hidden; border-radius: 12px; background: #efe8da; }
+.welcome-panel { min-height: 372px; margin-top: 40px; padding: 48px 66px; display: grid; grid-template-columns: 1fr 0.85fr; overflow: hidden; border: 1px solid rgba(215,204,186,.7); border-radius: 22px; background: radial-gradient(ellipse at 82% 18%, rgba(255,255,255,.62), transparent 34%), linear-gradient(120deg, #f1e9db, #eee5d7 64%, #e8dfd0); box-shadow: 0 16px 42px rgba(67,56,41,.07); }
 .welcome-copy { align-self: center; position: relative; z-index: 1; }
 .eyebrow { margin: 0 0 10px; color: #8e8272; font-size: 9px; font-weight: 700; letter-spacing: 1.7px; }
 h1, h2, h3, p { margin-top: 0; }
 .welcome-copy h1, .page-intro h1, .kiosk-welcome h1 { margin-bottom: 13px; font-family: "Playfair Display", serif; font-size: clamp(36px, 4vw, 52px); font-weight: 500; line-height: 1.07; letter-spacing: -1.5px; }
 .welcome-copy h1 span, .kiosk-welcome h1 span { color: #d18377; }
-.welcome-copy > p:not(.eyebrow) { margin-bottom: 25px; color: #716b62; font-size: 13px; }
+.welcome-copy > p:not(.eyebrow) { max-width: 360px; margin-bottom: 0; color: #716b62; font-size: 14px; line-height: 1.8; }
 .button { min-height: 43px; padding: 0 17px; display: inline-flex; align-items: center; justify-content: center; gap: 20px; border: 0; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; transition: transform .18s, background .18s; }
 .button:hover:not(:disabled) { transform: translateY(-1px); }
 .button-dark { color: #fff; background: #2e3730; }
@@ -47,7 +47,7 @@ h1, h2, h3, p { margin-top: 0; }
 .button-light { border: 1px solid var(--line); background: var(--paper); }
 .button:disabled { cursor: not-allowed; opacity: .44; }
 .welcome-art { min-height: 260px; position: relative; display: grid; place-items: center; }
-.sun-shape { width: 238px; height: 238px; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); border-radius: 50%; background: #e4d8c6; }
+.sun-shape { width: 250px; height: 250px; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border: 1px solid rgba(255,255,255,.55); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #eee4d4, #e1d3bf); box-shadow: inset 0 0 0 12px rgba(255,255,255,.12); }
 .hero-cup { width: 122px; height: 170px; position: relative; z-index: 1; margin-top: 43px; padding-top: 55px; border: 3px solid rgba(255,255,255,.82); border-top: 0; border-radius: 7px 7px 24px 24px; background: linear-gradient(180deg, #f8f0de 0 30%, #c88869 31% 100%); box-shadow: 10px 16px 21px rgba(94,71,55,.16); transform: rotate(-6deg); }
 .cup-lid { height: 14px; position: absolute; top: -7px; left: -9px; right: -9px; border: 3px solid #fff; border-radius: 6px; background: #f7f4e9; }
 .cup-straw { width: 10px; height: 76px; position: absolute; top: -69px; left: 68px; border: 2px solid white; background: #db9383; transform: rotate(12deg); }
@@ -59,22 +59,22 @@ h1, h2, h3, p { margin-top: 0; }
 .art-sparkle { position: absolute; color: #c17e69; font-size: 20px; }
 .sparkle-one { top: 30px; left: 25%; }.sparkle-two { right: 18%; bottom: 50px; font-size: 16px; }
 .art-caption { position: absolute; right: 2%; bottom: 4px; color: #807668; font-family: "Playfair Display", serif; font-size: 13px; font-style: italic; line-height: 1.25; transform: rotate(-7deg); }
-.portal-section { padding: 38px 0 52px; }
-.section-heading { margin-bottom: 18px; display: flex; align-items: end; justify-content: space-between; }
-.section-heading h2, .panel-heading h2, .menu-title h2, .order-heading h2 { margin: 0; font-family: "Playfair Display", serif; font-size: 24px; font-weight: 500; }
+.portal-section { padding: 46px 0 52px; }
+.section-heading { margin-bottom: 22px; display: flex; align-items: end; justify-content: space-between; }
+.section-heading h2, .panel-heading h2, .menu-title h2, .order-heading h2 { margin: 0; font-family: "Playfair Display", serif; font-size: 27px; font-weight: 500; }
 .section-heading .eyebrow { margin-bottom: 6px; }
 .section-note, .muted { color: var(--muted); font-size: 11px; }
 .portal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 17px; }
-.portal-card { min-height: 194px; padding: 20px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); transition: transform .18s, box-shadow .18s; }
-.portal-card:hover { transform: translateY(-3px); box-shadow: 0 11px 26px rgba(47,44,37,.08); }
-.card-top { margin-bottom: 18px; display: flex; justify-content: space-between; }
-.view-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: #55705a; background: #edf0e9; font-size: 17px; }
+.portal-card { min-height: 210px; padding: 23px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 15px; background: linear-gradient(145deg, #fffefa, #fbf9f4); box-shadow: 0 5px 16px rgba(47,44,37,.025); transition: transform .18s, box-shadow .18s, border-color .18s; }
+.portal-card:hover { transform: translateY(-4px); border-color: #d7d2c7; box-shadow: 0 14px 30px rgba(47,44,37,.09); }
+.card-top { margin-bottom: 22px; display: flex; justify-content: space-between; }
+.view-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: #55705a; background: #edf0e9; font-size: 19px; }
 .portal-cashier .view-icon { color: #a67555; background: #f8eee4; }.portal-kiosk .view-icon { color: #bd7773; background: #faedeb; }
 .card-arrow { color: #958e84; font-size: 15px; }
 .portal-card .eyebrow { margin-bottom: 5px; font-size: 8px; }
-.portal-card h3 { margin-bottom: 5px; font-family: "Playfair Display", serif; font-size: 18px; font-weight: 500; }
+.portal-card h3 { margin-bottom: 7px; font-family: "Playfair Display", serif; font-size: 20px; font-weight: 500; }
 .portal-card .muted { margin-bottom: 13px; }
-.text-link { margin-top: auto; padding: 0; border: 0; color: #526953; background: transparent; font-size: 10px; font-weight: 700; cursor: pointer; text-align: left; }
+.text-link { margin-top: auto; padding: 0; border: 0; color: #526953; background: transparent; font-size: 11px; font-weight: 700; cursor: pointer; text-align: left; }
 .text-link span { margin-left: 5px; }
 .footer { padding: 15px 0 22px; display: flex; justify-content: space-between; gap: 12px; color: #9a938a; font-size: 9px; }
 .pink { color: #ce8278; }
