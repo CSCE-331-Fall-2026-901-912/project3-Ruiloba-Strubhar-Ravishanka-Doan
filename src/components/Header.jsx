@@ -3,18 +3,18 @@ import React from "react";
 export default function Header({ current }) {
   const brand = (
     <>
-      <span className="brand-mark">b</span>
-      <span>Boba Bloom<small>TEA HOUSE</small></span>
+      <span className="brand-mark">P</span>
+      <span>Pearl Garden<small>Squad_12 TEA HOUSE</small></span>
     </>
   );
 
   return (
     <header className="topbar">
       {current === "home"
-        ? <a className="brand" href="/" aria-label="Boba Bloom home">{brand}</a>
+        ? <a className="brand" href="/" aria-label="Pearl Garden home">{brand}</a>
         : <div className="brand">{brand}</div>}
-      {current === "home" && <nav className="top-links" aria-label="Main navigation"><span className="active">Portal</span></nav>}
-      <div className="open-status"><span /> Open today <span className="status-hours">· 10am–9pm</span></div>
+
+      <div className="open-status"><span /> Open<span className="status-hours">· 24 HR</span></div>
     </header>
   );
 }

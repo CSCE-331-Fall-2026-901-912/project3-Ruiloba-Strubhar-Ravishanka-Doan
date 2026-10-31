@@ -1,4 +1,4 @@
-# Boba Bloom
+# Pearl Garden
 
 A React prototype for a boba shop with a portal hub, manager dashboard, cashier screen, and customer kiosk. The cashier and kiosk support sample drink selection and an in-browser order summary; shop data is currently static.
 

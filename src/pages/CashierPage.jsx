@@ -1,6 +1,27 @@
 import React, { useState, useEffect } from "react";
 import useOrder from "../hooks/useOrder.js";
 
+// COMPLETE EMOJI MATCHING MATRIX
+const getDrinkEmoji = (name) => {
+  const lower = String(name || '').toLowerCase();
+  if (lower.includes('oreo')) return "🍪";
+  if (lower.includes('honey')) return "🍯";
+  if (lower.includes('melon')) return "🍉";
+  if (lower.includes('chocolate') || lower.includes('cocoa')) return "🍫";
+  if (lower.includes('milk strike') || lower.includes('milk')) return "🥛";
+  if (lower.includes('brown sugar') || lower.includes('classic')) return "🧋";
+  if (lower.includes('strawberry') || lower.includes('berry')) return "🍓";
+  if (lower.includes('matcha')) return "🫖";
+  if (lower.includes('taro')) return "🍠";
+  if (lower.includes('mango')) return "🥭";
+  if (lower.includes('peach')) return "🍑";
+  if (lower.includes('oolong')) return "🍃";
+  if (lower.includes('lemonade') || lower.includes('citrus')) return "🍋";
+  if (lower.includes('green tea') || lower.includes('black tea')) return "🍵";
+  if (lower.includes('slush')) return "🍧";
+  return "🥤";
+};
+
 export default function CashierPage() {
   const order = useOrder();
 
@@ -17,6 +38,7 @@ export default function CashierPage() {
   const [message, setMessage] = useState("");
   const [activeCustomization, setActiveCustomization] = useState(null);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
 
   // Custom Customization Option Flags
   const [selectedSize, setSelectedSize] = useState("M");
@@ -25,7 +47,6 @@ export default function CashierPage() {
   // On-screen Numerical Keyboard Buffers
   const [keypadInput, setKeypadInput] = useState("");
 
-  // 1. Fetch live PostgreSQL dataset rows on load
   // 1. Fetch live PostgreSQL dataset rows on load
   useEffect(() => {
     fetch("/api/menu")
@@ -58,7 +79,7 @@ export default function CashierPage() {
           return cleanObj;
         });
 
-        // UPDATED: Catch everything that isn't explicitly a topping!
+        // Catch everything that isn't explicitly a topping!
         const drinks = normalizedData.filter((item) => {
           const category = item.item_category ? String(item.item_category).toLowerCase().trim() : "";
           return category !== "topping";
@@ -75,14 +96,10 @@ export default function CashierPage() {
       .catch((err) => console.error("Database connection configuration breakdown:", err));
   }, []);
 
-
-
-
   // 2. Reactive Data Filtering Evaluation Matrix (Synchronized with layout buttons)
   const getFilteredDrinks = () => {
     let output = [...drinksList];
 
-    // Category and Typestate Constraints mapped precisely to button definitions
     if (categoryFilter === "Seasonal Menu") {
       output = output.filter((d) => {
         const cat = d.item_category ? String(d.item_category).toLowerCase().trim() : "";
@@ -95,13 +112,12 @@ export default function CashierPage() {
       });
     } else if (categoryFilter !== "All Drinks") {
       output = output.filter((d) => {
-        const type = d.base_item_type ? String(d.base_item_type).toLowerCase().replace(/\s+/g, '') : "";
-        const match = categoryFilter.toLowerCase().replace(/\s+/g, '');
+        const type = d.base_item_type ? String(d.base_item_type).toLowerCase().replace(/\\s+/g, '') : "";
+        const match = categoryFilter.toLowerCase().replace(/\\s+/g, '');
         return type === match;
       });
     }
 
-    // Supply-Chain Inventory Verification Block (Safe Fallback Protection Layer)
     if (availabilityFilter === "Available Only") {
       output = output.filter((d) => {
         const count = d.inventory_count !== undefined && d.inventory_count !== null ? Number(d.inventory_count) : 1;
@@ -109,7 +125,6 @@ export default function CashierPage() {
       });
     }
 
-    // Lexicographical Array Reordering with fallback safety boundaries
     if (sortFilter === "Alphabetical") {
       output.sort((a, b) => String(a.item_name || '').localeCompare(String(b.item_name || '')));
     } else if (sortFilter === "Reverse Alphabetical") {
@@ -168,13 +183,25 @@ export default function CashierPage() {
     setShowTipModal(false);
   };
 
+  const handleEditItemClick = (item, idx) => {
+    const originalDrink = drinksList.find(d => String(d.item_name).toLowerCase() === String(item.drink_name).toLowerCase()) || {
+      itemid: item.id,
+      item_name: item.drink_name,
+      item_cost: item.item_cost
+    };
+    setEditingIndex(idx);
+    setActiveCustomization(originalDrink);
+    setSelectedSize(item.size);
+    setSelectedTopping(item.topping);
+  };
+
   return (
     <main className="content-page" style={{ padding: "20px", fontFamily: "sans-serif" }}>
       {/* Visual Notification System Banner */}
       {message && (
         <div className="success-message" style={{ background: "#d4edda", color: "#155724", padding: "15px", marginBottom: "20px", borderRadius: "5px", position: "relative" }}>
           <span>{message}</span>
-          <button onClick={() => setMessage("")} style={{ position: "absolute", right: "15px", background: "none", border: "none", fontSize: "16px", cursor: "pointer" }}>×</button>
+          <button onClick={() => setMessage("")} style={{ position: "absolute", right: "15px", background: "none", border: "none", fontSize: "26px", cursor: "pointer" }}>×</button>
         </div>
       )}
 
@@ -194,7 +221,7 @@ export default function CashierPage() {
                   padding: "8px 14px",
                   borderRadius: "20px",
                   border: "1px solid black",
-                  background: categoryFilter === type ? "#007bff" : "#fff",
+                  background: categoryFilter === type ? "#1E221D" : "#fff",
                   color: categoryFilter === type ? "#fff" : "#000",
                   fontWeight: "bold",
                   cursor: "pointer"
@@ -234,32 +261,82 @@ export default function CashierPage() {
             {getFilteredDrinks().map((drink) => {
               const isSeasonal = drink.item_category ? String(drink.item_category).toLowerCase().includes("seasonal") : false;
               const isOutOfStock = drink.inventory_count !== undefined && Number(drink.inventory_count) <= 0;
+
+              const handleSelectDrink = () => {
+                setEditingIndex(null);
+                setActiveCustomization(drink);
+                setSelectedSize("M");
+                setSelectedTopping("None");
+              };
+
               return (
                 <button
                   key={drink.itemid || Math.random()}
-                  onClick={() => {
-                    setActiveCustomization(drink);
-                    setSelectedSize("M");
-                    setSelectedTopping("None");
-                  }}
+                  onClick={handleSelectDrink}
                   disabled={isOutOfStock}
                   style={{
-                    padding: "20px 15px",
+                    padding: "20px 15px 40px 15px",
                     borderRadius: "20px",
                     border: "1px solid black",
                     background: isOutOfStock ? "#e0e0e0" : isSeasonal ? "#C9A0DC" : "#D1E5F4",
                     cursor: isOutOfStock ? "not-allowed" : "pointer",
                     textAlign: "center",
-                    minHeight: "140px",
+                    minHeight: "160px",
                     display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center"
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    position: "relative"
                   }}
                 >
-                  <strong style={{ fontSize: "16px", color: "black" }}>{drink.item_name || "Unnamed Drink"}</strong>
-                  <div style={{ marginTop: "8px", fontSize: "14px", color: "#333", fontWeight: "600" }}>${parseFloat(drink.item_cost || 0).toFixed(2)}</div>
-                  {isOutOfStock && <small style={{ color: "red", fontWeight: "bold" }}><br />OUT OF STOCK</small>}
+                  {/* RESTORED DRINK ICON COMPONENT BOX */}
+                  <div style={{
+                    width: "50px",
+                    height: "50px",
+                    borderRadius: "12px",
+                    backgroundColor: "rgba(255, 255, 255, 0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "26px",
+                    flexShrink: 0 // Prevents the icon box from getting squished
+                  }}>
+                    {getDrinkEmoji(drink.item_name)}
+                  </div>
+
+                  <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                    <strong style={{ fontSize: "15px", color: "black", display: "block" }}>{drink.item_name || "Unnamed Drink"}</strong>
+                    <div style={{ marginTop: "4px", fontSize: "14px", color: "#333", fontWeight: "600" }}>${parseFloat(drink.item_cost || 0).toFixed(2)}</div>
+                    {isOutOfStock && <small style={{ color: "red", fontWeight: "bold" }}><br />OUT OF STOCK</small>}
+                  </div>
+
+                  {/* Plus Icon Action Overlay Button */}
+                  {!isOutOfStock && (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectDrink();
+                      }}
+                      style={{
+                        position: "absolute",
+                        bottom: "12px",
+                        right: "12px",
+                        width: "30px",
+                        height: "30px",
+                        borderRadius: "50%",
+                        backgroundColor: "#5D6B59",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "20px",
+                        fontWeight: "bold",
+                        boxShadow: "0px 2px 5px rgba(0,0,0,0.15)"
+                      }}
+                    >
+                      +
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -272,16 +349,34 @@ export default function CashierPage() {
 
           <div className="ticket-items-list" style={{ minHeight: "220px", marginBottom: "20px" }}>
             {order.items.map((item, idx) => (
-              <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "12px", borderBottom: "1px solid #ddd", marginBottom: "12px" }}>
-                <div>
-                  <strong style={{ fontSize: "15px" }}>{item.drink_name || item.item_name} ({item.size})</strong>
-                  <div style={{ fontSize: "13px", color: "#555", margin: "2px 0" }}>Topping Addon: {item.topping}</div>
-                  <div style={{ fontWeight: "600", color: "#111" }}>Subtotal: ${(item.item_cost * item.quantity).toFixed(2)}</div>
+              <div
+                key={idx}
+                onClick={() => handleEditItemClick(item, idx)}
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  padding: "16px 10px",
+                  borderBottom: "1px solid #F5F5F2",
+                  cursor: "pointer",
+                  borderRadius: "8px",
+                  transition: "background-color 0.2s"
+                }}
+              >
+                {/* INLINE DRINK EMOJI BOX */}
+                <div style={{ width: "40px", height: "40px", borderRadius: "8px", backgroundColor: "#F5F5F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>
+                  {getDrinkEmoji(item.drink_name)}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <button style={{ width: "26px", height: "26px" }} onClick={() => order.decrementQuantity(idx)}>-</button>
-                  <span style={{ fontWeight: "bold", fontSize: "15px" }}>{item.quantity}</span>
-                  <button style={{ width: "26px", height: "26px" }} onClick={() => order.incrementQuantity(idx)}>+</button>
+
+                <div style={{ flexGrow: 1 }}>
+                  <h4 style={{ margin: "0 0 2px 0", fontSize: "14px", fontWeight: "600" }}>{item.drink_name || item.item_name}</h4>
+                  <span style={{ fontSize: "12px", color: "#888" }}>${parseFloat(item.item_cost || 0).toFixed(2)} each · Size: {item.size}</span>
+                  {item.topping !== "None" && <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>+ Topping: {item.topping}</div>}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", border: "1px solid #EBEAE6", borderRadius: "20px", padding: "4px 8px", height: "28px" }} onClick={(e) => e.stopPropagation()}>
+                  <button style={{ border: "none", background: "none", cursor: "pointer", fontWeight: "bold" }} onClick={() => order.decrementQuantity(idx)}>-</button>
+                  <span style={{ fontSize: "13px", fontWeight: "600" }}>{item.quantity}</span>
+                  <button style={{ border: "none", background: "none", cursor: "pointer", fontWeight: "bold" }} onClick={() => order.incrementQuantity(idx)}>+</button>
                 </div>
               </div>
             ))}
@@ -314,19 +409,19 @@ export default function CashierPage() {
       {activeCustomization && (
         <div className="modal-backdrop" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
           <div className="modal-content" style={{ background: "#fff", padding: "25px", borderRadius: "8px", width: "340px", boxShadow: "0px 4px 15px rgba(0,0,0,0.2)" }}>
-            <h3>Customize: {activeCustomization.item_name}</h3>
+            <h3>{editingIndex !== null ? `Edit: ${activeCustomization.item_name}` : `Customize: ${activeCustomization.item_name}`}</h3>
 
             <div style={{ marginBottom: "20px" }}>
               <label style={{ display: "block", marginBottom: "8px" }}><strong>Select Dimensions (Size)</strong></label>
               <div style={{ display: "flex", gap: "12px" }}>
-                <button onClick={() => setSelectedSize("M")} style={{ flex: 1, padding: "12px", background: selectedSize === "M" ? "#007bff" : "#fff", color: selectedSize === "M" ? "#fff" : "#000", border: "1px solid #007bff", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}>Medium (M)</button>
-                <button onClick={() => setSelectedSize("L")} style={{ flex: 1, padding: "12px", background: selectedSize === "L" ? "#007bff" : "#fff", color: selectedSize === "L" ? "#fff" : "#000", border: "1px solid #007bff", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}>Large (L) (+$0.50)</button>
+                <button onClick={() => setSelectedSize("M")} style={{ flex: 1, padding: "12px", background: selectedSize === "M" ? "#1E221D" : "#fff", color: selectedSize === "M" ? "#fff" : "#000", border: "1px solid #EBEAE6", borderRadius: "8px", cursor: "pointer", fontWeight: "500" }}>Medium (M)</button>
+                <button onClick={() => setSelectedSize("L")} style={{ flex: 1, padding: "12px", background: selectedSize === "L" ? "#1E221D" : "#fff", color: selectedSize === "L" ? "#fff" : "#000", border: "1px solid #EBEAE6", borderRadius: "8px", cursor: "pointer", fontWeight: "500" }}>Large (L) (+$0.50)</button>
               </div>
             </div>
 
             <div style={{ marginBottom: "25px" }}>
               <label style={{ display: "block", marginBottom: "8px" }}><strong>Select Standard Topping Addon</strong></label>
-              <select value={selectedTopping} onChange={(e) => setSelectedTopping(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "4px", fontSize: "14px", border: "1px solid #ccc" }}>
+              <select value={selectedTopping} onChange={(e) => setSelectedTopping(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: "8px", fontSize: "14px", border: "1px solid #EBEAE6", backgroundColor: "#fff" }}>
                 <option value="None">No Topping Addon</option>
                 {toppingsList.map((top) => (
                   <option key={top.itemid || Math.random()} value={top.item_name}>{top.item_name} (+${parseFloat(top.item_cost || 0).toFixed(2)})</option>
@@ -335,46 +430,55 @@ export default function CashierPage() {
             </div>
 
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button onClick={() => setActiveCustomization(null)} style={{ padding: "10px 15px", background: "#6c757d", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { setActiveCustomization(null); setEditingIndex(null); }} style={{ padding: "10px 15px", background: "#F0EFEA", color: "#111", border: "none", borderRadius: "4px", cursor: "pointer" }}>Cancel</button>
               <button
                 onClick={() => {
                   const toppingObj = toppingsList.find(t => t.item_name === selectedTopping);
                   const basePrice = parseFloat(activeCustomization.item_cost || 0);
                   const toppingPrice = toppingObj ? parseFloat(toppingObj.item_cost || 0) : 0.0;
                   const sizeSurcharge = selectedSize === "L" ? 0.50 : 0.0;
-
                   const combinedCost = basePrice + toppingPrice + sizeSurcharge;
 
-                  // UNIFIED SIGNATURE BLOCK: Satisfies both useOrder lookup checks simultaneously
-                  order.addDrink(
-                    {
-                      itemid: activeCustomization.itemid,
-                      item_name: activeCustomization.item_name,
+                  if (editingIndex !== null) {
+                    const originalQuantity = order.items[editingIndex].quantity;
+                    order.items[editingIndex] = {
+                      id: activeCustomization.itemid,
                       drink_name: activeCustomization.item_name,
-                      item_cost: combinedCost
-                    },
-                    selectedSize,
-                    selectedTopping
-                  );
+                      item_cost: combinedCost,
+                      size: selectedSize,
+                      topping: selectedTopping,
+                      quantity: originalQuantity
+                    };
+                    order.setTip(order.tip);
+                  } else {
+                    order.addDrink(
+                      {
+                        itemid: activeCustomization.itemid,
+                        item_name: activeCustomization.item_name,
+                        drink_name: activeCustomization.item_name,
+                        item_cost: combinedCost
+                      },
+                      selectedSize,
+                      selectedTopping
+                    );
+                  }
 
                   setActiveCustomization(null);
+                  setEditingIndex(null);
                 }}
-                style={{ padding: "10px 15px", background: "#28a745", color: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}
+                style={{ padding: "10px 15px", background: "#1E221D", color: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}
               >
-                Add To Ticket
+                {editingIndex !== null ? "Update Item" : "Add To Ticket"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* POPUP MODAL B: GRATUITY SETTLEMENT & VISUAL KEYPAD PORTAL */}
       {showTipModal && (
         <div className="modal-backdrop" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
           <div className="modal-content" style={{ background: "#fff", padding: "25px", borderRadius: "8px", width: "360px", boxShadow: "0px 4px 15px rgba(0,0,0,0.2)" }}>
             <h3>Select Tip Amount</h3>
-
-            {/* Fixed Percentage Rate Vectors */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "20px" }}>
               {[0.05, 0.10, 0.15, 0.20].map((rate) => (
                 <button
@@ -390,14 +494,13 @@ export default function CashierPage() {
               ))}
             </div>
 
-            {/* Standalone Virtual Numeric Input Keypad Module */}
             <div style={{ borderTop: "1px solid #ccc", paddingTop: "15px" }}>
               <label style={{ display: "block", marginBottom: "6px" }}><strong>Enter Custom Dollar Amount:</strong></label>
               <input
                 type="text"
                 readOnly
                 value={keypadInput ? `$${keypadInput}` : "$0.00"}
-                style={{ width: "100%", padding: "12px", fontSize: "20px", fontWeight: "bold", textAlign: "right", marginBottom: "15px", boxSizing: "border-box", border: "1px solid #aaa", borderRadius: "4px", background: "#f8f9fa" }}
+                style={{ width: "100%", padding: "12px", fontSize: "20px", fontWeight: "bold", textAlign: "right", marginBottom: "15px", boxSizing: "border-box", border: "1px solid #EBEAE6", borderRadius: "8px", background: "#F5F5F2" }}
               />
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "15px" }}>
@@ -405,7 +508,7 @@ export default function CashierPage() {
                   <button
                     key={btn}
                     onClick={() => handleKeypadPress(btn)}
-                    style={{ padding: "14px", fontSize: "16px", fontWeight: "bold", cursor: "pointer", background: btn === "Clear" ? "#f8d7da" : "#f1f3f5", border: "1px solid #ccc", borderRadius: "4px" }}
+                    style={{ padding: "12px", fontSize: "15px", fontWeight: "bold", cursor: "pointer", background: btn === "Clear" ? "#f8d7da" : "#F5F5F2", border: "none", borderRadius: "8px" }}
                   >
                     {btn}
                   </button>
@@ -413,10 +516,9 @@ export default function CashierPage() {
               </div>
             </div>
 
-            {/* Keypad Submission Group Triggers */}
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button onClick={() => { setKeypadInput(""); setShowTipModal(false); }} style={{ padding: "10px 15px", background: "#6c757d", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}>Close</button>
-              <button onClick={applyCustomKeypadTip} disabled={!keypadInput} style={{ padding: "10px 15px", background: "#007bff", color: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: !keypadInput ? "not-allowed" : "pointer" }}>Apply Keypad Tip</button>
+              <button onClick={() => { setKeypadInput(""); setShowTipModal(false); }} style={{ padding: "10px 15px", background: "#F0EFEA", border: "none", borderRadius: "8px", cursor: "pointer" }}>Close</button>
+              <button onClick={applyCustomKeypadTip} disabled={!keypadInput} style={{ padding: "10px 15px", background: "#1E221D", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: !keypadInput ? "not-allowed" : "pointer" }}>Apply</button>
             </div>
           </div>
         </div>
