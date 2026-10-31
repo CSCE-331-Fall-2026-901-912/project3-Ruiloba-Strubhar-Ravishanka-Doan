@@ -1,30 +1,74 @@
-import React, { useState } from "react";
-import DrinkMenu from "../components/DrinkMenu.jsx";
-import OrderSummary from "../components/OrderSummary.jsx";
-import { drinks } from "../data/shop.js";
-import useOrder from "../hooks/useOrder.js";
+import React, { useEffect, useState } from 'react';
+import KioskDrinkMenu from '../components/KioskDrinkMenu.jsx';
+import KioskCustomizeModal from '../components/KioskCustomizeModal.jsx';
+import KioskTicket from '../components/KioskTicket.jsx';
+import KioskCheckoutModal from '../components/KioskCheckoutModal.jsx';
+import useKioskOrder from '../hooks/useKioskOrder.js';
+//import cup from '../assets/pearl-garden-cup.png';
+import './customer-kiosk.css';
 
 export default function CustomerKioskPage() {
-  const order = useOrder();
-  const [category, setCategory] = useState("All drinks");
-  const [placed, setPlaced] = useState(false);
-  const checkout = () => {
-    setPlaced(true);
-    order.clear();
-  };
+  const order = useKioskOrder();
+  const [drinks, setDrinks] = useState([]);
+  const [toppings, setToppings] = useState([]);
+  const [category, setCategory] = useState('All drinks');
+  const [selected, setSelected] = useState(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [receipt, setReceipt] = useState(null);
 
-  return (
-    <main className="kiosk-page">
-      <div className="kiosk-welcome"><p className="eyebrow">A LITTLE PICK-ME-UP</p><h1>Hi there, boba lover<span>!</span></h1><p>Choose your favorites. We’ll make them fresh.</p><span className="kiosk-doodle" aria-hidden="true">✳</span></div>
-      {placed && <div className="success-message kiosk-success" role="status">Thanks for your order! We’ll call your name when it’s ready.<button type="button" onClick={() => setPlaced(false)} aria-label="Dismiss message">×</button></div>}
-      <div className="pos-layout kiosk-layout">
-        <section className="menu-section">
-          <div className="menu-title"><div><p className="eyebrow">SIP SOMETHING LOVELY</p><h2>Pick your drink</h2></div></div>
-          <DrinkMenu add={(drink) => { setPlaced(false); order.add(drink); }} selectedCategory={category} setSelectedCategory={setCategory} />
-        </section>
-        <OrderSummary order={order} onCheckout={checkout} checkoutLabel="Place my order" />
-      </div>
-      <footer className="footer"><span>Need a hand? Our team is right over there <span className="pink">♥</span></span></footer>
-    </main>
-  );
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadMenu() {
+      try {
+        const response = await fetch('/api/kiosk/menu', { signal: controller.signal });
+        if (!response.ok) throw new Error(`Menu request failed (${response.status})`);
+        const data = await response.json();
+        setDrinks(data.drinks ?? []);
+        setToppings(data.toppings ?? []);
+      } catch (err) { if (err.name !== 'AbortError') setError(`Could not load the database menu: ${err.message}`); }
+      finally { if (!controller.signal.aborted) setLoading(false); }
+    }
+    loadMenu();
+    return () => controller.abort();
+  }, []);
+
+  async function submitOrder(tip) {
+    if (submitting) return;
+    setSubmitting(true);
+    setError('');
+    try {
+      const response = await fetch('/api/kiosk/orders', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tip, items: order.items.map(item => ({ drinkId: item.drinkId, toppingId: item.toppingId, size: item.size, quantity: item.quantity })) }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save order');
+      setReceipt(data);
+      setCheckoutOpen(false);
+      order.clear();
+    } catch (err) { setError(`Order not confirmed: ${err.message}. Please check before retrying.`); }
+    finally { setSubmitting(false); }
+  }
+
+  return <main className="pg-kiosk">
+    <header className="pg-hero">
+      <div><p className="pg-eyebrow">A LITTLE PICK-ME-UP</p><h1>Hi there, boba lover!</h1><p>Choose your favorites. We'll make them fresh.</p></div>
+      <div className="pg-brand"><img src="/pearl-garden-cup.png" alt="Pearl Garden floral cup"/><strong>Pearl<br/>Garden</strong></div>
+      <div className="pg-weather"><span>Maybe a drink for<br/>a rainy day</span><span className="pg-cloud" aria-hidden="true">🌧️</span></div>
+    </header>
+    {error && <div className="pg-alert" role="alert">{error}<button type="button" onClick={() => setError('')}>Dismiss</button></div>}
+    {receipt && <section className="pg-receipt" role="status"><h2>Thank you! Your ticket is #{receipt.orderId}</h2><p>Order saved · {receipt.items?.length ?? 0} line item(s) · Total ${Number(receipt.total).toFixed(2)}</p><button type="button" onClick={() => setReceipt(null)}>Start another order</button></section>}
+    <div className="pg-layout">
+      <section className="pg-menu-panel"><p className="pg-eyebrow">SIP SOMETHING LOVELY</p><h2>Pick your drink</h2>
+        {loading ? <p role="status">Loading menu from database…</p> : <KioskDrinkMenu drinks={drinks} category={category} setCategory={setCategory} onSelect={setSelected}/>}
+      </section>
+      <KioskTicket order={order} submitting={submitting} onCheckout={() => setCheckoutOpen(true)}/>
+    </div>
+    <footer className="pg-footer">Need a hand? Our team is right over there <span>♥</span></footer>
+    {selected && <KioskCustomizeModal drink={selected} toppings={toppings} onClose={() => setSelected(null)} onAdd={selection => { order.add(selection); setSelected(null); setReceipt(null); }}/>} 
+    {checkoutOpen && <KioskCheckoutModal order={order} submitting={submitting} onClose={() => setCheckoutOpen(false)} onConfirm={submitOrder}/>}
+  </main>;
 }
