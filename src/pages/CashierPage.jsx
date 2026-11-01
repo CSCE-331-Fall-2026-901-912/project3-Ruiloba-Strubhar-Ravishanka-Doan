@@ -370,7 +370,10 @@ export default function CashierPage() {
         {/* RIGHT COLUMN: REAL-TIME TICKET RECEIPT & COST CALCULATIONS */}
         <section className="order-summary-pane" style={{ flex: "1", borderLeft: "1px solid #ccc", paddingLeft: "20px", background: "#f9f9f9", borderRadius: "8px", padding: "15px", position: "sticky", top: "20px" }}>
           <h3 style={{ textAlign: "center", width: "100%", margin: "10px 0 20px 0", fontSize: "28px" }}>
-            Current Ticket ({order.count} drinks)
+            Current Ticket
+          </h3>
+          <h3 style={{ textAlign: "center", width: "100%", margin: "10px 0 20px 0", fontSize: "28px" }}>
+            ({order.count} drinks)
           </h3>
 
           <div className="ticket-items-list" style={{ minHeight: "220px", marginBottom: "20px" }}>
