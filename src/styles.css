@@ -78,6 +78,32 @@ h1, h2, h3, p { margin-top: 0; }
 .text-link span { margin-left: 5px; }
 .footer { padding: 15px 0 22px; display: flex; justify-content: space-between; gap: 12px; color: #9a938a; font-size: 9px; }
 .pink { color: #ce8278; }
+.app-home { color: #111; background: #fff; --ink: #111; --muted: #111; --paper: #fff; --line: #eadfea; }
+.app-home .topbar { background: #fff; border-bottom-color: #eadfea; }
+.app-home .brand small { color: #111; }
+.app-home .welcome-panel { border-color: #e8d5ef; background: radial-gradient(ellipse at 82% 18%, rgba(255,255,255,.9), transparent 34%), linear-gradient(120deg, #fff, #fff4f8 64%, #f6f0ff); box-shadow: 0 16px 42px rgba(104,72,125,.08); }
+.app-home .eyebrow { color: #684879; }
+.app-home .welcome-copy h1 span { color: #8d5bb5; }
+.app-home .welcome-copy > p:not(.eyebrow) { color: #111; }
+.app-home .sun-shape { border-color: rgba(255,255,255,.9); background: radial-gradient(circle at 35% 30%, #f6eafa, #e8dcf4); }
+.app-home .hero-cup { background: linear-gradient(180deg, #f8f0ff 0 30%, #d89acb 31% 100%); box-shadow: 10px 16px 21px rgba(104,72,125,.16); }
+.app-home .cup-lid { background: #fff; }
+.app-home .cup-straw { background: #a78bd4; }
+.app-home .pearls { color: #372d3e; }
+.app-home .art-leaf { background: #b38acb; }
+.app-home .leaf-two { background: #8e9fdb; }
+.app-home .art-sparkle { color: #6684d8; }
+.app-home .art-caption { color: #111; }
+.app-home .section-note, .app-home .muted, .app-home .card-arrow { color: #111; }
+.app-home .portal-card { border-color: #eadfea; background: #fff; }
+.app-home .portal-card:hover { border-color: #b58acb; box-shadow: 0 14px 30px rgba(104,72,125,.12); }
+.app-home .view-icon { color: #70508b; background: #f3eafb; }
+.app-home .portal-cashier .view-icon { color: #9d527f; background: #fcebf4; }
+.app-home .portal-kiosk .view-icon { color: #526db3; background: #edf1ff; }
+.app-home .text-link { color: #684879; }
+.app-home .footer { color: #111; }
+.app-home .pink { color: #d66aa8; }
+.app-home a:focus-visible { outline-color: #8d5bb5; }
 .content-page { padding: 40px 0 55px; }
 .page-intro { margin-bottom: 27px; display: flex; align-items: end; justify-content: space-between; gap: 20px; }
 .page-intro h1 { margin-bottom: 6px; font-size: 38px; }

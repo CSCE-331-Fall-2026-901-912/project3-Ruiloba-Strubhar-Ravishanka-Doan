@@ -8,12 +8,12 @@ export default function PortalPage({ onNavigate }) {
         <div className="welcome-copy">
           <p className="eyebrow">YOUR LITTLE CORNER OF BOBA</p>
           <h1>Good things<br />are brewing<span>.</span></h1>
-          <p>Welcome to Boba Bloom. Pick a view to jump into your day.</p>
+          <p>Welcome to Pearl Garden. Pick a view to jump into your day.</p>
         </div>
         <div className="welcome-art" aria-hidden="true">
           <div className="sun-shape" />
           <div className="art-leaf leaf-one" /><div className="art-leaf leaf-two" />
-          <div className="hero-cup"><div className="cup-lid" /><div className="cup-straw" /><div className="cup-tea">Boba<br />Bloom</div><div className="pearls">● ● ●<br /> ● ●</div></div>
+          <div className="hero-cup"><div className="cup-lid" /><div className="cup-straw" /><div className="cup-tea">Pearl<br />Garden</div><div className="pearls">● ● ●<br /> ● ●</div></div>
           <span className="art-sparkle sparkle-one">✳</span><span className="art-sparkle sparkle-two">✦</span>
           <span className="art-caption">a little joy<br />in every sip</span>
         </div>
@@ -34,7 +34,7 @@ export default function PortalPage({ onNavigate }) {
           ))}
         </div>
       </section>
-      <footer className="footer"><span>Made with a little extra sweetness <span className="pink">♥</span></span><span>BOBA BLOOM · EST. 2026</span></footer>
+      <footer className="footer"><span>Made with a little extra sweetness <span className="pink">♥</span></span><span>PEARL GARDEN · EST. 2026</span></footer>
     </>
   );
 }
