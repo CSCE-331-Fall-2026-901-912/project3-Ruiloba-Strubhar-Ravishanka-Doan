@@ -1,39 +1,750 @@
-import React from "react";
-import PageIntro from "../components/PageIntro.jsx";
+import React, { useEffect, useState } from "react";
 
-function Metric({ label, value, change, tone = "" }) {
-  return <article className={`metric-card ${tone}`}><p>{label}</p><strong>{value}</strong><span>{change}</span></article>;
+const colors = {
+  white: "#ffffff",
+  black: "#111111",
+  pink: "#ffecf2",
+  pinkDark: "#d6417a",
+  purple: "#f3e8ff",
+  purpleDark: "#6b21a8",
+  blue: "#e0f2fe",
+  blueDark: "#0369a1",
+  mediumBlue: "#2563eb",
+  darkerBlue: "#1e3a8a",
+  grayBorder: "#e5e7eb",
+  grayBg: "#f9fafb",
+};
+
+const todayDate = new Date().toISOString().slice(0, 10);
+const monthAgoDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+const emptyForm = {
+  item_name: "",
+  item_cal: "",
+  item_cost: "",
+  item_category: "base_drink",
+  base_item_type: "",
+};
+
+const reportOptions = [
+  { value: "sales-summary", label: "Sales Summary", endpoint: "sales-summary" },
+  { value: "sales-by-day", label: "Sales by Day", endpoint: "sales-by-day" },
+  { value: "top-items", label: "Top Selling Items", endpoint: "top-items" },
+  { value: "payment-methods", label: "Payment Methods", endpoint: "payment-methods" },
+  { value: "employee-performance", label: "Employee Performance", endpoint: "employee-performance" },
+  { value: "inventory", label: "Inventory", endpoint: "inventory" },
+];
+
+function money(value) {
+  return `$${Number(value || 0).toFixed(2)}`;
+}
+
+function normalizeMenu(item) {
+  const clean = {};
+  Object.keys(item || {}).forEach((key) => {
+    const lower = key.toLowerCase().trim();
+    let value = item[key];
+    if (lower === "item_cost" || lower === "item_cal") {
+      value = value !== null && value !== undefined ? Number(value) : 0;
+    }
+    if (lower === "itemid") {
+      value = value !== null && value !== undefined ? Number(value) : 0;
+    }
+    clean[lower] = value;
+  });
+  return clean;
 }
 
 export default function ManagerDashboardPage() {
-  const bars = [38, 55, 45, 70, 57, 84, 64, 77, 52, 94, 72, 88];
+  const [activeTab, setActiveTab] = useState("menu");
+  const [message, setMessage] = useState("");
+
+  const [menuItems, setMenuItems] = useState([]);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const [menuError, setMenuError] = useState("");
+  const [search, setSearch] = useState("");
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+
+  const [reportType, setReportType] = useState("sales-summary");
+  const [startDate, setStartDate] = useState(monthAgoDate);
+  const [endDate, setEndDate] = useState(todayDate);
+  const [topLimit, setTopLimit] = useState(10);
+  const [reportData, setReportData] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState("");
+
+  const loadMenu = async () => {
+    setMenuLoading(true);
+    setMenuError("");
+    try {
+      const response = await fetch("/api/menu");
+      if (!response.ok) throw new Error("Failed to load menu items");
+      const data = await response.json();
+      setMenuItems(Array.isArray(data) ? data.map(normalizeMenu) : []);
+    } catch (err) {
+      setMenuError(err.message || "Failed to load menu items");
+    } finally {
+      setMenuLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMenu();
+  }, []);
+
+  const resetForm = () => {
+    setForm(emptyForm);
+    setShowAdd(false);
+    setEditingItem(null);
+  };
+
+  const submitAdd = async (event) => {
+    event.preventDefault();
+    if (!form.item_name.trim()) {
+      setMenuError("Item name is required");
+      return;
+    }
+    setSaving(true);
+    setMenuError("");
+    try {
+      const response = await fetch("/api/menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_name: form.item_name.trim(),
+          item_cal: Number(form.item_cal) || 0,
+          item_cost: Number(form.item_cost) || 0,
+          item_category: form.item_category,
+          base_item_type: form.base_item_type.trim() || null,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to add menu item");
+      resetForm();
+      setMessage("Menu item added.");
+      await loadMenu();
+    } catch (err) {
+      setMenuError(err.message || "Failed to add menu item");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEdit = (item) => {
+    setEditingItem(item);
+    setShowAdd(false);
+    setForm({
+      item_name: item.item_name || "",
+      item_cal: item.item_cal ?? "",
+      item_cost: item.item_cost ?? "",
+      item_category: item.item_category || "base_drink",
+      base_item_type: item.base_item_type || "",
+    });
+  };
+
+  const submitEdit = async (event) => {
+    event.preventDefault();
+    if (!editingItem) return;
+    if (!form.item_name.trim()) {
+      setMenuError("Item name is required");
+      return;
+    }
+    setSaving(true);
+    setMenuError("");
+    try {
+      const response = await fetch(`/api/menu/${editingItem.itemid}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_name: form.item_name.trim(),
+          item_cal: Number(form.item_cal) || 0,
+          item_cost: Number(form.item_cost) || 0,
+          item_category: form.item_category,
+          base_item_type: form.base_item_type.trim() || null,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to update menu item");
+      resetForm();
+      setMessage("Menu item updated.");
+      await loadMenu();
+    } catch (err) {
+      setMenuError(err.message || "Failed to update menu item");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteItem = async (item) => {
+    if (!window.confirm(`Delete ${item.item_name}?`)) return;
+    try {
+      const response = await fetch(`/api/menu/${item.itemid}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete menu item");
+      setMessage("Menu item deleted.");
+      await loadMenu();
+    } catch (err) {
+      setMenuError(err.message || "Failed to delete menu item");
+    }
+  };
+
+  const generateReport = async () => {
+    setReportLoading(true);
+    setReportError("");
+    setReportData(null);
+    const option = reportOptions.find((item) => item.value === reportType);
+    try {
+      const params = new URLSearchParams();
+      if (reportType !== "inventory") {
+        params.set("start", startDate);
+        params.set("end", endDate);
+      }
+      if (reportType === "top-items") {
+        params.set("limit", String(topLimit));
+      }
+      const url = `/api/reports/${option.endpoint}${params.toString() ? `?${params.toString()}` : ""}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to generate report");
+      const data = await response.json();
+      setReportData({ type: reportType, payload: data });
+    } catch (err) {
+      setReportError(err.message || "Failed to generate report");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const filteredMenu = menuItems.filter((item) => {
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      String(item.item_name || "").toLowerCase().includes(query) ||
+      String(item.item_category || "").toLowerCase().includes(query) ||
+      String(item.base_item_type || "").toLowerCase().includes(query)
+    );
+  });
+
+  const salesByDay = reportData?.type === "sales-by-day" ? reportData.payload : [];
+  const maxDayRevenue = Math.max(1, ...salesByDay.map((row) => Number(row.revenue) || 0));
+
+  const topItems = reportData?.type === "top-items" ? reportData.payload : [];
+  const maxTopQuantity = Math.max(1, ...topItems.map((row) => Number(row.quantity) || 0));
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    border: `1px solid ${colors.grayBorder}`,
+    fontSize: "14px",
+    boxSizing: "border-box",
+    background: colors.white,
+  };
+
+  const buttonStyle = (background, color, border = "none") => ({
+    padding: "10px 16px",
+    borderRadius: "10px",
+    border,
+    background,
+    color,
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+  });
+
+  const tableStyle = {
+    width: "100%",
+    borderCollapse: "collapse",
+    background: colors.white,
+    border: `1px solid ${colors.grayBorder}`,
+    borderRadius: "12px",
+    overflow: "hidden",
+  };
+
+  const thStyle = {
+    textAlign: "left",
+    padding: "12px 14px",
+    fontSize: "12px",
+    fontWeight: "700",
+    color: colors.black,
+    background: colors.grayBg,
+    borderBottom: `1px solid ${colors.grayBorder}`,
+  };
+
+  const tdStyle = {
+    padding: "12px 14px",
+    fontSize: "13px",
+    borderBottom: `1px solid ${colors.grayBorder}`,
+    verticalAlign: "middle",
+  };
+
   return (
-    <main className="content-page">
-      <PageIntro eyebrow="TUESDAY, OCTOBER 27" title="Shop at a glance" description="Here’s how the tea house is doing today.">
-        <button className="button button-light" type="button">Today <span>⌄</span></button>
-      </PageIntro>
-      <section className="metrics-grid" aria-label="Shop metrics">
-        <Metric label="Today's sales" value="$1,284.50" change="↑ 12.8% from yesterday" />
-        <Metric label="Orders today" value="86" change="↑ 8 orders from yesterday" />
-        <Metric label="Average order" value="$14.94" change="↑ $1.20 from last week" />
-        <Metric label="Team on shift" value="4 / 5" change="1 shift starts at 12:00" tone="metric-peach" />
-      </section>
-      <div className="dashboard-grid">
-        <section className="panel sales-panel">
-          <div className="panel-heading"><div><p className="eyebrow">THE BIG PICTURE</p><h2>Sales this week</h2></div><span className="legend"><i /> This week</span></div>
-          <div className="sales-total">$8,462.80 <span>↑ 9.4%</span></div>
-          <div className="chart" role="img" aria-label="Bar chart showing sales over the last twelve days">
-            {bars.map((height, index) => <div className="bar-column" key={index}><span className={`bar ${index === 9 ? "bar-highlight" : ""}`} style={{ height: `${height}%` }} />{index % 2 === 0 && <small>{["M", "T", "W", "T", "F", "S"][Math.floor(index / 2)]}</small>}</div>)}
-          </div>
-        </section>
-        <section className="panel popular-panel">
-          <div className="panel-heading"><div><p className="eyebrow">GUEST FAVORITES</p><h2>Top drinks</h2></div><span className="view-all">This week</span></div>
-          <ol className="top-drinks">
-            {[["01", "Brown Sugar Milk Tea", "124 cups", "🧋"], ["02", "Strawberry Matcha", "98 cups", "🍵"], ["03", "Taro Cloud", "76 cups", "🥤"]].map(([rank, name, sold, icon]) => <li key={rank}><span className="rank">{rank}</span><span className="mini-drink">{icon}</span><span className="drink-info"><strong>{name}</strong><small>{sold}</small></span><span className="list-chevron">↗</span></li>)}
-          </ol>
-        </section>
+    <main
+      style={{
+        padding: "24px",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        backgroundColor: colors.white,
+        minHeight: "100vh",
+        color: colors.black,
+      }}
+    >
+      {message && (
+        <div
+          style={{
+            background: "#ecfdf5",
+            color: "#065f46",
+            border: "1px solid #a7f3d0",
+            padding: "16px",
+            marginBottom: "24px",
+            borderRadius: "12px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "16px",
+            fontWeight: "500",
+          }}
+        >
+          <span>{message}</span>
+          <button
+            onClick={() => setMessage("")}
+            style={{ background: "none", border: "none", fontSize: "22px", color: "#065f46", cursor: "pointer", padding: "0 4px" }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <p style={{ margin: "0 0 4px 0", fontSize: "11px", fontWeight: "700", letterSpacing: "1.5px", color: colors.purpleDark }}>
+            MANAGER DASHBOARD
+          </p>
+          <h1 style={{ margin: "0 0 6px 0", fontSize: "34px", fontWeight: "700", color: colors.black }}>Manager Dashboard</h1>
+          <p style={{ margin: 0, color: "#4b5563", fontSize: "15px" }}>Manage menu items and prices, then generate day-to-day reports.</p>
+        </div>
       </div>
-      <section className="inventory-alert"><span className="alert-icon">!</span><div><strong>Heads up: 2 items are running low</strong><p>Brown sugar syrup and large cups need a restock soon.</p></div><button type="button" className="text-link">View inventory <span>→</span></button></section>
+
+      <div style={{ display: "flex", gap: "8px", marginBottom: "24px", flexWrap: "wrap" }}>
+        {[
+          { value: "menu", label: "Menu Management" },
+          { value: "reports", label: "Reports" },
+        ].map((tab) => {
+          const selected = activeTab === tab.value;
+          return (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              style={buttonStyle(selected ? colors.purpleDark : colors.purple, selected ? colors.white : colors.purpleDark, `1px solid ${colors.grayBorder}`)}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeTab === "menu" && (
+        <section>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
+            <input
+              type="text"
+              placeholder="Search menu items"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              style={{ ...inputStyle, maxWidth: "320px" }}
+            />
+            <button onClick={() => { setShowAdd(true); setEditingItem(null); setForm(emptyForm); }} style={buttonStyle(colors.mediumBlue, colors.white)}>
+              Add Menu Item
+            </button>
+          </div>
+
+          {menuError && (
+            <div style={{ color: "#b91c1c", marginBottom: "12px", fontWeight: "600" }}>{menuError}</div>
+          )}
+
+          {menuLoading ? (
+            <p style={{ color: "#4b5563" }}>Loading menu...</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>ID</th>
+                    <th style={thStyle}>Name</th>
+                    <th style={thStyle}>Category</th>
+                    <th style={thStyle}>Type</th>
+                    <th style={thStyle}>Calories</th>
+                    <th style={thStyle}>Price</th>
+                    <th style={thStyle}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMenu.map((item) => (
+                    <tr key={item.itemid}>
+                      <td style={tdStyle}>{item.itemid}</td>
+                      <td style={tdStyle}>{item.item_name}</td>
+                      <td style={tdStyle}>{item.item_category}</td>
+                      <td style={tdStyle}>{item.base_item_type || "-"}</td>
+                      <td style={tdStyle}>{item.item_cal}</td>
+                      <td style={tdStyle}>{money(item.item_cost)}</td>
+                      <td style={tdStyle}>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          <button onClick={() => startEdit(item)} style={buttonStyle(colors.purple, colors.purpleDark, `1px solid ${colors.grayBorder}`)}>
+                            Edit
+                          </button>
+                          <button onClick={() => deleteItem(item)} style={buttonStyle(colors.pink, colors.pinkDark, `1px solid ${colors.grayBorder}`)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredMenu.length === 0 && (
+                    <tr>
+                      <td style={tdStyle} colSpan={7}>No menu items found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "reports" && (
+        <section>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "16px", alignItems: "end" }}>
+            <div>
+              <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Report</label>
+              <select value={reportType} onChange={(event) => setReportType(event.target.value)} style={inputStyle}>
+                {reportOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            {reportType !== "inventory" && (
+              <>
+                <div>
+                  <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Start Date</label>
+                  <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>End Date</label>
+                  <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} style={inputStyle} />
+                </div>
+              </>
+            )}
+            {reportType === "top-items" && (
+              <div>
+                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Limit</label>
+                <input type="number" min="1" max="50" value={topLimit} onChange={(event) => setTopLimit(Number(event.target.value) || 10)} style={inputStyle} />
+              </div>
+            )}
+            <div>
+              <button onClick={generateReport} disabled={reportLoading} style={buttonStyle(colors.darkerBlue, colors.white)}>
+                {reportLoading ? "Generating..." : "Generate Report"}
+              </button>
+            </div>
+          </div>
+
+          {reportError && (
+            <div style={{ color: "#b91c1c", marginBottom: "12px", fontWeight: "600" }}>{reportError}</div>
+          )}
+
+          {!reportLoading && !reportError && reportData?.type === "sales-summary" && (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+                {[
+                  ["Total Orders", reportData.payload.totalOrders],
+                  ["Total Revenue", money(reportData.payload.totalRevenue)],
+                  ["Item Revenue", money(reportData.payload.itemRevenue)],
+                  ["Tax", money(reportData.payload.tax)],
+                  ["Tips", money(reportData.payload.tips)],
+                  ["Average Order", money(reportData.payload.averageOrder)],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ padding: "16px", borderRadius: "12px", border: `1px solid ${colors.grayBorder}`, background: colors.grayBg }}>
+                    <p style={{ margin: "0 0 6px 0", fontSize: "11px", fontWeight: "700", color: "#6b7280" }}>{label}</p>
+                    <strong style={{ fontSize: "22px", color: colors.black }}>{value}</strong>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: "#4b5563", fontSize: "13px" }}>
+                Range: {reportData.payload.startDate} to {reportData.payload.endDate}
+              </p>
+            </div>
+          )}
+
+          {!reportLoading && !reportError && reportData?.type === "sales-by-day" && (
+            <div>
+              <div style={{ marginBottom: "20px" }}>
+                <p style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "700", color: colors.black }}>Revenue by Day</p>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "180px", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+                  {salesByDay.map((row, index) => (
+                    <div key={index} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: `${(Number(row.revenue) / maxDayRevenue) * 100}%`,
+                          minHeight: "4px",
+                          background: index === salesByDay.length - 1 ? colors.purpleDark : colors.purple,
+                          borderRadius: "6px 6px 0 0",
+                        }}
+                        title={`${row.date}: ${money(row.revenue)}`}
+                      />
+                      <small style={{ fontSize: "9px", color: "#6b7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                        {String(row.date).slice(5, 10)}
+                      </small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={tableStyle}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Date</th>
+                      <th style={thStyle}>Orders</th>
+                      <th style={thStyle}>Revenue</th>
+                      <th style={thStyle}>Item Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesByDay.map((row, index) => (
+                      <tr key={index}>
+                        <td style={tdStyle}>{String(row.date).slice(0, 10)}</td>
+                        <td style={tdStyle}>{row.orders}</td>
+                        <td style={tdStyle}>{money(row.revenue)}</td>
+                        <td style={tdStyle}>{money(row.itemRevenue)}</td>
+                      </tr>
+                    ))}
+                    {salesByDay.length === 0 && (
+                      <tr>
+                        <td style={tdStyle} colSpan={4}>No sales data for this range.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {!reportLoading && !reportError && reportData?.type === "top-items" && (
+            <div>
+              <div style={{ marginBottom: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {topItems.map((row, index) => (
+                  <div key={index}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "4px" }}>
+                      <span style={{ fontWeight: "600" }}>{row.name}</span>
+                      <span style={{ color: "#4b5563" }}>{row.quantity} sold · {money(row.revenue)}</span>
+                    </div>
+                    <div style={{ height: "10px", background: colors.grayBg, borderRadius: "999px", overflow: "hidden" }}>
+                      <div style={{ width: `${(Number(row.quantity) / maxTopQuantity) * 100}%`, height: "100%", background: colors.mediumBlue, borderRadius: "999px" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={tableStyle}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Item</th>
+                      <th style={thStyle}>Quantity</th>
+                      <th style={thStyle}>Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topItems.map((row, index) => (
+                      <tr key={index}>
+                        <td style={tdStyle}>{row.name}</td>
+                        <td style={tdStyle}>{row.quantity}</td>
+                        <td style={tdStyle}>{money(row.revenue)}</td>
+                      </tr>
+                    ))}
+                    {topItems.length === 0 && (
+                      <tr>
+                        <td style={tdStyle} colSpan={3}>No item data for this range.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {!reportLoading && !reportError && reportData?.type === "payment-methods" && (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Payment Method</th>
+                    <th style={thStyle}>Orders</th>
+                    <th style={thStyle}>Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.payload.map((row, index) => (
+                    <tr key={index}>
+                      <td style={tdStyle}>{row.payType}</td>
+                      <td style={tdStyle}>{row.orders}</td>
+                      <td style={tdStyle}>{money(row.revenue)}</td>
+                    </tr>
+                  ))}
+                  {reportData.payload.length === 0 && (
+                    <tr>
+                      <td style={tdStyle} colSpan={3}>No payment data for this range.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!reportLoading && !reportError && reportData?.type === "employee-performance" && (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Employee</th>
+                    <th style={thStyle}>Orders</th>
+                    <th style={thStyle}>Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.payload.map((row, index) => (
+                    <tr key={index}>
+                      <td style={tdStyle}>{row.server}</td>
+                      <td style={tdStyle}>{row.orders}</td>
+                      <td style={tdStyle}>{money(row.revenue)}</td>
+                    </tr>
+                  ))}
+                  {reportData.payload.length === 0 && (
+                    <tr>
+                      <td style={tdStyle} colSpan={3}>No employee data for this range.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!reportLoading && !reportError && reportData?.type === "inventory" && (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Supply</th>
+                    <th style={thStyle}>Quantity</th>
+                    <th style={thStyle}>Units</th>
+                    <th style={thStyle}>Cost</th>
+                    <th style={thStyle}>Recorded</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.payload.map((row, index) => (
+                    <tr key={index}>
+                      <td style={tdStyle}>{row.name}</td>
+                      <td style={tdStyle}>{row.qty}</td>
+                      <td style={tdStyle}>{row.units}</td>
+                      <td style={tdStyle}>{money(row.cost)}</td>
+                      <td style={tdStyle}>{row.recordedAt ? String(row.recordedAt).slice(0, 10) : "-"}</td>
+                    </tr>
+                  ))}
+                  {reportData.payload.length === 0 && (
+                    <tr>
+                      <td style={tdStyle} colSpan={5}>No inventory data.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {(showAdd || editingItem) && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <form
+            onSubmit={editingItem ? submitEdit : submitAdd}
+            style={{
+              background: colors.white,
+              padding: "24px",
+              borderRadius: "16px",
+              width: "420px",
+              maxWidth: "92vw",
+              boxShadow: "0px 10px 25px rgba(0,0,0,0.1)",
+              border: `1px solid ${colors.grayBorder}`,
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700" }}>
+              {editingItem ? `Edit ${editingItem.item_name}` : "Add Menu Item"}
+            </h3>
+            <input
+              type="text"
+              placeholder="Item name"
+              value={form.item_name}
+              onChange={(event) => setForm({ ...form, item_name: event.target.value })}
+              style={inputStyle}
+              required
+            />
+            <input
+              type="number"
+              placeholder="Calories"
+              value={form.item_cal}
+              onChange={(event) => setForm({ ...form, item_cal: event.target.value })}
+              style={inputStyle}
+            />
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Price"
+              value={form.item_cost}
+              onChange={(event) => setForm({ ...form, item_cost: event.target.value })}
+              style={inputStyle}
+            />
+            <select
+              value={form.item_category}
+              onChange={(event) => setForm({ ...form, item_category: event.target.value })}
+              style={inputStyle}
+            >
+              <option value="base_drink">base_drink</option>
+              <option value="seasonal_drink">seasonal_drink</option>
+              <option value="topping">topping</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Base item type (optional)"
+              value={form.base_item_type}
+              onChange={(event) => setForm({ ...form, base_item_type: event.target.value })}
+              style={inputStyle}
+            />
+            {menuError && <div style={{ color: "#b91c1c", fontWeight: "600" }}>{menuError}</div>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
+              <button type="button" onClick={resetForm} style={buttonStyle(colors.grayBg, colors.black, `1px solid ${colors.grayBorder}`)}>
+                Cancel
+              </button>
+              <button type="submit" disabled={saving} style={buttonStyle(colors.purpleDark, colors.white)}>
+                {saving ? "Saving..." : editingItem ? "Update Item" : "Add Item"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </main>
   );
 }
