@@ -1,32 +1,19 @@
 import { useMemo, useState } from 'react';
-
-const round = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-const taxRate = 0.0825;
-
+const round = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const makeItem = ({drink,topping,size,quantity}) => {
+  const drinkId = Number(drink.itemid), toppingId = topping?.itemid ?? null;
+  return {key: `${drinkId}:${size}:${toppingId ?? 'none'}`, drinkId, drinkName: drink.item_name, drinkPrice: Number(drink.item_cost), toppingId, toppingName: topping?.item_name ?? 'No topping', toppingPrice: Number(topping?.item_cost ?? 0), size, quantity: Number(quantity)};
+};
+const merge = list => { const result = []; for (const item of list) { const found = result.find(other => other.key === item.key); if (found) found.quantity += item.quantity; else result.push({...item}); } return result; };
 export default function useKioskOrder() {
-  const [items, setItems] = useState([]);
-  const [tip, setTip] = useState(0);
-
-  const add = (selection) => {
-    setItems(previous => {
-      const key = `${selection.drink.itemid}:${selection.size}:${selection.topping?.itemid ?? 'none'}`;
-      const found = previous.find(item => item.key === key);
-      if (found) return previous.map(item => item.key === key ? { ...item, quantity: item.quantity + selection.quantity } : item);
-      return [...previous, {
-        key, drinkId: selection.drink.itemid, drinkName: selection.drink.item_name,
-        drinkPrice: Number(selection.drink.item_cost), size: selection.size,
-        toppingId: selection.topping?.itemid ?? null,
-        toppingName: selection.topping?.item_name ?? 'No topping',
-        toppingPrice: Number(selection.topping?.item_cost ?? 0), quantity: selection.quantity,
-      }];
-    });
-  };
-  const changeQuantity = (key, difference) => setItems(previous => previous.map(item => item.key === key ? { ...item, quantity: item.quantity + difference } : item).filter(item => item.quantity > 0));
-  const remove = key => setItems(previous => previous.filter(item => item.key !== key));
-  const clear = () => { setItems([]); setTip(0); };
-  const subtotal = useMemo(() => round(items.reduce((sum, item) => sum + (item.drinkPrice + item.toppingPrice) * item.quantity, 0)), [items]);
-  const tax = round(subtotal * taxRate);
-  const total = round(subtotal + tax + tip);
-  const count = items.reduce((sum, item) => sum + item.quantity, 0);
-  return { items, add, changeQuantity, remove, clear, tip, setTip, subtotal, tax, total, count };
+  const [items,setItems] = useState([]);
+  const add = selection => setItems(prev => merge([...prev,makeItem(selection)]));
+  const edit = (key,selection) => setItems(prev => merge(prev.map(item => item.key === key ? makeItem(selection) : item)));
+  const changeQuantity = (key,diff) => setItems(prev => prev.map(item => item.key === key ? {...item,quantity:item.quantity+diff} : item).filter(item => item.quantity > 0));
+  const remove = key => setItems(prev => prev.filter(item => item.key !== key));
+  const clear = () => setItems([]);
+  const unitPrice = item => round(item.drinkPrice + item.toppingPrice + (item.size === 'L' ? 0.50 : 0));
+  const subtotal = useMemo(() => round(items.reduce((sum,item) => sum + unitPrice(item)*item.quantity,0)),[items]);
+  const tax = round(subtotal*0.0825), total = round(subtotal+tax), count = items.reduce((sum,item) => sum+item.quantity,0);
+  return {items,add,edit,changeQuantity,remove,clear,unitPrice,subtotal,tax,total,count};
 }

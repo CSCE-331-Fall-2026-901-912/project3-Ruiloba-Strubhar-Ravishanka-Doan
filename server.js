@@ -345,6 +345,59 @@ app.get('/api/reports/inventory', async (_req, res) => {
   }
 });
 
+// Customer kiosk checkout (separate from the cashier endpoint)
+app.post('/api/kiosk/orders', async (req, res) => {
+  const { items, tip = 0 } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0 || items.length > 100) return res.status(400).json({ error: 'Please add a drink.' });
+  const tipCents = Math.round(Number(tip) * 100);
+  if (!Number.isSafeInteger(tipCents) || tipCents < 0 || tipCents > 100000) return res.status(400).json({ error: 'Invalid tip.' });
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [3312026]);
+    const idResult = await client.query('SELECT COALESCE(MAX(orderid), 0) AS max_id FROM order_history');
+    const orderId = Number(idResult.rows[0].max_id) + 1;
+    let subtotalCents = 0;
+    const lines = [];
+    for (const item of items) {
+      const drinkId = Number(item.drinkId), quantity = Number(item.quantity);
+      const toppingId = item.toppingId == null ? null : Number(item.toppingId);
+      const size = item.size;
+      if (!Number.isSafeInteger(drinkId) || drinkId < 1 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100 || !['M','L'].includes(size) || (toppingId !== null && (!Number.isSafeInteger(toppingId) || toppingId < 1))) throw new Error('Invalid drink selection');
+      const drinkResult = await client.query("SELECT item_name, item_cost FROM menu WHERE itemid = $1 AND item_category IN ('base_drink', 'seasonal_drink')", [drinkId]);
+      if (!drinkResult.rows.length) throw new Error('Drink not found');
+      const drink = drinkResult.rows[0];
+      let toppingName = 'None', toppingCents = 0;
+      if (toppingId !== null) {
+        const toppingResult = await client.query("SELECT item_name, item_cost FROM menu WHERE itemid = $1 AND item_category = 'topping'", [toppingId]);
+        if (!toppingResult.rows.length) throw new Error('Topping not found');
+        toppingName = toppingResult.rows[0].item_name;
+        toppingCents = Math.round(Number(toppingResult.rows[0].item_cost) * 100);
+      }
+      const lineCents = (Math.round(Number(drink.item_cost) * 100) + toppingCents + (size === 'L' ? 50 : 0)) * quantity;
+      if (!Number.isSafeInteger(lineCents) || lineCents < 0) throw new Error('Invalid price');
+      subtotalCents += lineCents;
+      lines.push({ drinkName: drink.item_name, toppingName, quantity, size, lineSubtotal: lineCents / 100 });
+    }
+    const taxCents = Math.round(subtotalCents * 0.0825);
+    const totalCents = subtotalCents + taxCents + tipCents;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i], last = i === lines.length - 1;
+      await client.query(`INSERT INTO order_history (orderid, item_cost_subtotal, phone_number, pay_type, time, drink_name, topping, item_quantity, item_size, tips, tax, total, server)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        [orderId, line.lineSubtotal, '000-000-0000', 'kiosk', new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents/100 : null, last ? taxCents/100 : null, last ? totalCents/100 : null, 'customer-kiosk']);
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ success: true, orderId, items: lines, subtotal: subtotalCents/100, tax: taxCents/100, tip: tipCents/100, total: totalCents/100 });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK');
+    console.error('Kiosk order error:', error);
+    res.status(['Invalid drink selection','Drink not found','Topping not found','Invalid price'].includes(error.message) ? 400 : 500).json({ error: ['Invalid drink selection','Drink not found','Topping not found','Invalid price'].includes(error.message) ? error.message : 'Unable to save kiosk order' });
+  } finally { if (client) client.release(); }
+});
+
+
 // Fallback static resource router pipeline layer
 app.use(express.static(buildDirectory));
 app.get(/.*/, (_request, response) => {
