@@ -483,8 +483,7 @@ export default function ManagerDashboardPage() {
                       <div
                         style={{
                           width: "100%",
-                          height: `${(Number(row.revenue) / maxDayRevenue) * 100}%`,
-                          minHeight: "4px",
+                          height: `${Math.max(4, (Number(row.revenue) / maxDayRevenue) * 160)}px`,
                           background: index === salesByDay.length - 1 ? colors.purpleDark : colors.purple,
                           borderRadius: "6px 6px 0 0",
                         }}
