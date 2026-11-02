@@ -142,3 +142,15 @@
   .pg-kiosk .pg-receipt-cup { height: 95px; }
   .pg-kiosk .pg-receipt-subtitle { margin-bottom: 12px; }
 }
+
+/* Touch-only custom tip keypad; checkout styles are scoped to the kiosk. */
+.pg-kiosk .pg-tip-custom { margin-top: 15px; }
+.pg-kiosk .pg-tip-label { display: block; font-weight: 700; margin-bottom: 8px; color: #604b70; }
+.pg-kiosk .pg-tip-display { display: block; background: #fff; border: 2px solid #d4b5dd; border-radius: 12px; padding: 12px 16px; font-size: 1.55rem; font-weight: 750; text-align: right; color: #493454; margin-bottom: 12px; }
+.pg-kiosk .pg-tip-numpad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.pg-kiosk .pg-tip-numpad button { min-height: 52px; border: 1.5px solid #d2addc; background: #fff; color: #513960; border-radius: 12px; font-size: 1.3rem; font-weight: 700; touch-action: manipulation; }
+.pg-kiosk .pg-tip-numpad button:hover, .pg-kiosk .pg-tip-numpad button:focus-visible { background: #ead5f0; }
+.pg-kiosk .pg-tip-numpad button:active { background: #d7b4e2; }
+.pg-kiosk .pg-tip-numpad .pg-tip-key-clear { grid-column: span 1; font-size: .9rem; background: #f7e5ef; }
+.pg-kiosk .pg-tip-numpad .pg-tip-key-delete { grid-column: 1 / -1; background: #f2e8f7; }
+.pg-kiosk .pg-tip-numpad button:disabled { opacity: .55; cursor: not-allowed; }
