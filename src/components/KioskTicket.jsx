@@ -29,7 +29,7 @@ export default function KioskTicket({ order, onCheckout, onEdit, submitting }) {
             </div>
 
             <small className="pg-ticket-item-detail">
-              {item.size === 'M' ? 'Medium' : 'Large (+$0.50)'} · {item.toppingName}
+              {item.size === 'M' ? 'Medium' : 'Large (+$0.50)'} · {(item.toppingNames?.length ? item.toppingNames.join(', ') : 'No topping')}
             </small>
 
             <div className="pg-ticket-item-bottom">

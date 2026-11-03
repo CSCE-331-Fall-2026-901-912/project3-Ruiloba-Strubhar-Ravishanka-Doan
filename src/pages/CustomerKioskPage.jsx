@@ -60,7 +60,7 @@ export default function CustomerKioskPage() {
     try {
       const response = await fetch('/api/kiosk/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tip, items: order.items.map(item => ({ drinkId: item.drinkId, toppingId: item.toppingId, size: item.size, quantity: item.quantity })) }),
+        body: JSON.stringify({ tip, items: order.items.map(item => ({ drinkId: item.drinkId, toppingIds: item.toppingIds, size: item.size, quantity: item.quantity })) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save order');

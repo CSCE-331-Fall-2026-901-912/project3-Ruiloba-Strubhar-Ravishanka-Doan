@@ -6,11 +6,15 @@ export default function useOrder() {
 
   const SALES_TAX_RATE = 0.0825; // tax rate 8.25% 
 
-  const addDrink = (drink, size, topping) => {
+  const addDrink = (drink, size, toppings = []) => {
+    const toppingList = (Array.isArray(toppings) ? toppings : [toppings])
+      .map(value => String(value).trim())
+      .filter(value => value && value !== 'None');
+    const uniqueToppings = [...new Set(toppingList)].sort();
+    const toppingLabel = uniqueToppings.join(', ') || 'None';
     setItems((prevItems) => {
-      // uniqueness signature checks identical drinks
       const existingIndex = prevItems.findIndex(
-        (i) => i.drink_name === drink.item_name && i.size === size && i.topping === topping
+        (i) => i.drink_name === drink.item_name && i.size === size && (i.topping || 'None') === toppingLabel
       );
 
       if (existingIndex > -1) {
@@ -26,7 +30,8 @@ export default function useOrder() {
           drink_name: drink.item_name,
           item_cost: parseFloat(drink.item_cost),
           size: size,
-          topping: topping,
+          topping: toppingLabel,
+          toppings: uniqueToppings,
           quantity: 1,
         },
       ];

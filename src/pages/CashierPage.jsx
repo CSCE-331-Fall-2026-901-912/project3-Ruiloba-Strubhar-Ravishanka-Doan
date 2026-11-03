@@ -42,7 +42,7 @@ export default function CashierPage() {
 
   // Custom Customization Option Flags
   const [selectedSize, setSelectedSize] = useState("M");
-  const [selectedTopping, setSelectedTopping] = useState("None");
+  const [selectedToppings, setSelectedToppings] = useState([]);
 
   // On-screen Numerical Keyboard Buffers
   const [keypadInput, setKeypadInput] = useState("");
@@ -195,7 +195,7 @@ export default function CashierPage() {
     setEditingIndex(idx);
     setActiveCustomization(originalDrink);
     setSelectedSize(item.size);
-    setSelectedTopping(item.topping);
+    setSelectedToppings(Array.isArray(item.toppings) ? item.toppings : (item.topping && item.topping !== "None" ? String(item.topping).split(",").map(value => value.trim()).filter(Boolean) : []));
   };
 
   // Color Palette Definitions (Specified Aesthetics)
@@ -329,7 +329,7 @@ export default function CashierPage() {
                 setEditingIndex(null);
                 setActiveCustomization(drink);
                 setSelectedSize("M");
-                setSelectedTopping("None");
+                setSelectedToppings([]);
               };
 
               // Determine visual background based on status
@@ -572,48 +572,55 @@ export default function CashierPage() {
             </div>
 
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Select Topping</label>
-              <select value={selectedTopping} onChange={(e) => setSelectedTopping(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: "10px", fontSize: "14px", border: `1px solid ${colors.grayBorder}`, backgroundColor: colors.white, cursor: "pointer", fontWeight: "500" }}>
-                <option value="None">No Topping</option>
+              <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Select Toppings</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", padding: "12px" }}>
                 {toppingsList.map((top) => (
-                  <option key={top.itemid || Math.random()} value={top.item_name}>{top.item_name} (+${parseFloat(top.item_cost || 0).toFixed(2)})</option>
+                  <label key={top.itemid || Math.random()} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
+                    <input type="checkbox" checked={selectedToppings.includes(top.item_name)} onChange={() => setSelectedToppings(prev => prev.includes(top.item_name) ? prev.filter(value => value !== top.item_name) : [...prev, top.item_name])} />
+                    {top.item_name} (+${parseFloat(top.item_cost || 0).toFixed(2)})
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
               <button onClick={() => { setActiveCustomization(null); setEditingIndex(null); }} style={{ padding: "10px 16px", background: colors.grayBg, color: colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "8px", cursor: "pointer", fontWeight: "500", fontSize: "14px" }}>Cancel</button>
               <button
                 onClick={() => {
-                  const toppingObj = toppingsList.find(t => t.item_name === selectedTopping);
-                  const basePrice = parseFloat(activeCustomization.item_cost || 0);
-                  const toppingPrice = toppingObj ? parseFloat(toppingObj.item_cost || 0) : 0.0;
-                  const sizeSurcharge = selectedSize === "L" ? 0.50 : 0.0;
-                  const combinedCost = basePrice + toppingPrice + sizeSurcharge;
+                   const uniqueToppings = [...new Set(selectedToppings)].sort();
+                   const toppingLabel = uniqueToppings.join(', ') || 'None';
+                   const basePrice = parseFloat(activeCustomization.item_cost || 0);
+                   const toppingPrice = uniqueToppings.reduce((sum, name) => {
+                     const toppingObj = toppingsList.find(t => t.item_name === name);
+                     return sum + (toppingObj ? parseFloat(toppingObj.item_cost || 0) : 0);
+                   }, 0);
+                   const sizeSurcharge = selectedSize === "L" ? 0.50 : 0.0;
+                   const combinedCost = basePrice + toppingPrice + sizeSurcharge;
 
-                  if (editingIndex !== null) {
-                    const originalQuantity = order.items[editingIndex].quantity;
-                    order.items[editingIndex] = {
-                      id: activeCustomization.itemid,
-                      drink_name: activeCustomization.item_name,
-                      item_cost: combinedCost,
-                      size: selectedSize,
-                      topping: selectedTopping,
-                      quantity: originalQuantity
-                    };
-                    order.setTip(order.tip);
-                  } else {
-                    order.addDrink(
-                      {
-                        itemid: activeCustomization.itemid,
-                        item_name: activeCustomization.item_name,
-                        drink_name: activeCustomization.item_name,
-                        item_cost: combinedCost
-                      },
-                      selectedSize,
-                      selectedTopping
-                    );
-                  }
+                   if (editingIndex !== null) {
+                     const originalQuantity = order.items[editingIndex].quantity;
+                     order.items[editingIndex] = {
+                       id: activeCustomization.itemid,
+                       drink_name: activeCustomization.item_name,
+                       item_cost: combinedCost,
+                       size: selectedSize,
+                       topping: toppingLabel,
+                       toppings: uniqueToppings,
+                       quantity: originalQuantity
+                     };
+                     order.setTip(order.tip);
+                   } else {
+                     order.addDrink(
+                       {
+                         itemid: activeCustomization.itemid,
+                         item_name: activeCustomization.item_name,
+                         drink_name: activeCustomization.item_name,
+                         item_cost: combinedCost
+                       },
+                       selectedSize,
+                       uniqueToppings
+                     );
+                   }
 
                   setActiveCustomization(null);
                   setEditingIndex(null);

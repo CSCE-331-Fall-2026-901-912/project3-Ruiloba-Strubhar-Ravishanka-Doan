@@ -99,7 +99,7 @@ app.post('/api/orders', async (req, res) => {
         fallbackPayType,
         currentTime,
         item.drink_name || item.item_name,
-        item.topping || 'None',
+        (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(item.topping) ? item.topping : [item.topping])).filter(Boolean).join(', ') || 'None',
         item.quantity,
         item.size,
         isFirstItemRow ? parseFloat(tip || 0) : null,
@@ -362,19 +362,21 @@ app.post('/api/kiosk/orders', async (req, res) => {
     const lines = [];
     for (const item of items) {
       const drinkId = Number(item.drinkId), quantity = Number(item.quantity);
-      const toppingId = item.toppingId == null ? null : Number(item.toppingId);
       const size = item.size;
-      if (!Number.isSafeInteger(drinkId) || drinkId < 1 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100 || !['M','L'].includes(size) || (toppingId !== null && (!Number.isSafeInteger(toppingId) || toppingId < 1))) throw new Error('Invalid drink selection');
+      const rawToppingIds = Array.isArray(item.toppingIds) ? item.toppingIds : (item.toppingId == null ? [] : [item.toppingId]);
+      const toppingIds = [...new Set(rawToppingIds.map(Number))];
+      if (!Number.isSafeInteger(drinkId) || drinkId < 1 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100 || !['M','L'].includes(size) || toppingIds.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Error('Invalid drink selection');
       const drinkResult = await client.query("SELECT item_name, item_cost FROM menu WHERE itemid = $1 AND item_category IN ('base_drink', 'seasonal_drink')", [drinkId]);
       if (!drinkResult.rows.length) throw new Error('Drink not found');
       const drink = drinkResult.rows[0];
-      let toppingName = 'None', toppingCents = 0;
-      if (toppingId !== null) {
+      let toppingNames = [], toppingCents = 0;
+      for (const toppingId of toppingIds) {
         const toppingResult = await client.query("SELECT item_name, item_cost FROM menu WHERE itemid = $1 AND item_category = 'topping'", [toppingId]);
         if (!toppingResult.rows.length) throw new Error('Topping not found');
-        toppingName = toppingResult.rows[0].item_name;
-        toppingCents = Math.round(Number(toppingResult.rows[0].item_cost) * 100);
+        toppingNames.push(toppingResult.rows[0].item_name);
+        toppingCents += Math.round(Number(toppingResult.rows[0].item_cost) * 100);
       }
+      const toppingName = toppingNames.length ? toppingNames.join(', ') : 'None';
       const lineCents = (Math.round(Number(drink.item_cost) * 100) + toppingCents + (size === 'L' ? 50 : 0)) * quantity;
       if (!Number.isSafeInteger(lineCents) || lineCents < 0) throw new Error('Invalid price');
       subtotalCents += lineCents;

@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react';
 const round = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
-const makeItem = ({drink,topping,size,quantity}) => {
-  const drinkId = Number(drink.itemid), toppingId = topping?.itemid ?? null;
-  return {key: `${drinkId}:${size}:${toppingId ?? 'none'}`, drinkId, drinkName: drink.item_name, drinkPrice: Number(drink.item_cost), toppingId, toppingName: topping?.item_name ?? 'No topping', toppingPrice: Number(topping?.item_cost ?? 0), size, quantity: Number(quantity)};
+const makeItem = ({drink,toppings,size,quantity}) => {
+  const drinkId = Number(drink.itemid);
+  const selected = Array.isArray(toppings) ? toppings : (toppings ? [toppings] : []);
+  const toppingIds = selected.map(t => Number(t.itemid)).filter(Number.isSafeInteger).sort((a,b) => a-b);
+  const toppingNames = selected.map(t => t.item_name);
+  const toppingPrice = selected.reduce((sum,t) => sum + Number(t.item_cost ?? 0), 0);
+  return {key: `${drinkId}:${size}:${toppingIds.join(',') || 'none'}`, drinkId, drinkName: drink.item_name, drinkPrice: Number(drink.item_cost), toppingIds, toppingNames, toppingPrice: Number(toppingPrice), size, quantity: Number(quantity)};
 };
 const merge = list => { const result = []; for (const item of list) { const found = result.find(other => other.key === item.key); if (found) found.quantity += item.quantity; else result.push({...item}); } return result; };
 export default function useKioskOrder() {
