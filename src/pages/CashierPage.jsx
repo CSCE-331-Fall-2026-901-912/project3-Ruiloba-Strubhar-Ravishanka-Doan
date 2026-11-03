@@ -599,7 +599,7 @@ export default function CashierPage() {
 
                    if (editingIndex !== null) {
                      const originalQuantity = order.items[editingIndex].quantity;
-                     order.items[editingIndex] = {
+                     order.updateItem(editingIndex, {
                        id: activeCustomization.itemid,
                        drink_name: activeCustomization.item_name,
                        item_cost: combinedCost,
@@ -607,8 +607,7 @@ export default function CashierPage() {
                        topping: toppingLabel,
                        toppings: uniqueToppings,
                        quantity: originalQuantity
-                     };
-                     order.setTip(order.tip);
+                     });
                    } else {
                      order.addDrink(
                        {

@@ -5,7 +5,7 @@ const money = amount => `$${Number(amount).toFixed(2)}`;
 export default function KioskCheckoutModal({ order, onClose, onConfirm, submitting }) {
   const [tipOption, setTipOption] = useState(0);
   const [customTip, setCustomTip] = useState('');
-  const tip = tipOption === 'custom' ? Number(customTip || 0) : Math.round(order.subtotal * tipOption) / 100;
+  const tip = tipOption === 'custom' ? Number(customTip || 0) : Math.round(order.subtotal * tipOption * 100) / 100;
   const valid = Number.isFinite(tip) && tip >= 0 && tip <= 1000;
 
   const pressKey = key => {

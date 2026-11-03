@@ -54,6 +54,15 @@ export default function useOrder() {
     setItems(updated);
   };
 
+  const updateItem = (index, item) => {
+    setItems((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      const updated = [...prev];
+      updated[index] = item;
+      return updated;
+    });
+  };
+
   const clear = () => {
     setItems([]);
     setTip(0);
@@ -70,6 +79,7 @@ export default function useOrder() {
     tip,
     setTip,
     addDrink,
+    updateItem,
     incrementQuantity,
     decrementQuantity,
     clear,
