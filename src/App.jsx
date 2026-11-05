@@ -4,6 +4,7 @@ import CashierPage from "./pages/CashierPage.jsx";
 import CustomerKioskPage from "./pages/CustomerKioskPage.jsx";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage.jsx";
 import PortalPage from "./pages/PortalPage.jsx";
+import PageMagnifier from "./components/PageMagnifier.jsx";
 
 const pages = {
   manager: ManagerDashboardPage,
@@ -31,21 +32,24 @@ export default function App() {
   const Page = pages[current] || PortalPage;
 
   return (
-    <div className={`app app-${current}`}>
-      {/* Shared Persistent Header Bar */}
-      <Header current={current} onNavigate={setCurrent} />
+    <>
+      <div className={`app app-${current}`}>
+        {/* Shared Persistent Header Bar */}
+        <Header current={current} onNavigate={setCurrent} />
 
-      {/* Main Content Area Canvas Wrapper */}
-      <main
-        ref={mainContentRef}
-        className="page-shell"
-        tabIndex={-1}
-        style={{ outline: "none" }}
-        role="main"
-        aria-live="polite"
-      >
-        {current === "home" ? <PortalPage onNavigate={setCurrent} /> : <Page />}
-      </main>
-    </div>
+        {/* Main Content Area Canvas Wrapper */}
+        <main
+          ref={mainContentRef}
+          className="page-shell"
+          tabIndex={-1}
+          style={{ outline: "none" }}
+          role="main"
+          aria-live="polite"
+        >
+          {current === "home" ? <PortalPage onNavigate={setCurrent} /> : <Page />}
+        </main>
+      </div>
+      <PageMagnifier />
+    </>
   );
 }
