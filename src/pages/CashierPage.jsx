@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import useOrder from "../hooks/useOrder.js";
 
 // COMPLETE EMOJI MATCHING MATRIX
@@ -46,6 +46,10 @@ export default function CashierPage() {
 
   // On-screen Numerical Keyboard Buffers
   const [keypadInput, setKeypadInput] = useState("");
+
+  // Accessibility Focus Trap Refs
+  const customModalRef = useRef(null);
+  const tipModalRef = useRef(null);
 
   // 1. Fetch live PostgreSQL dataset rows on load
   useEffect(() => {
@@ -95,6 +99,57 @@ export default function CashierPage() {
       })
       .catch((err) => console.error("Database connection configuration breakdown:", err));
   }, []);
+
+  // Keyboard Accessibility Focus Trap Handler
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== "Tab") return;
+
+      let activeModal = null;
+      if (activeCustomization) activeModal = customModalRef.current;
+      else if (showTipModal) activeModal = tipModalRef.current;
+
+      if (!activeModal) return;
+
+      const focusableElements = activeModal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          e.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [activeCustomization, showTipModal]);
+
+  // Focus inside modal when opened
+  useEffect(() => {
+    if (activeCustomization && customModalRef.current) {
+      const firstBtn = customModalRef.current.querySelector("button");
+      if (firstBtn) firstBtn.focus();
+    }
+  }, [activeCustomization]);
+
+  useEffect(() => {
+    if (showTipModal && tipModalRef.current) {
+      const firstBtn = tipModalRef.current.querySelector("button");
+      if (firstBtn) firstBtn.focus();
+    }
+  }, [showTipModal]);
 
   // 2. Reactive Data Filtering Evaluation Matrix (Synchronized with layout buttons)
   const getFilteredDrinks = () => {
@@ -173,7 +228,8 @@ export default function CashierPage() {
     } else if (val === ".") {
       if (!keypadInput.includes(".")) setKeypadInput(keypadInput + ".");
     } else {
-      setKeypadInput(keypadInput + val);
+      const nextInput = keypadInput + val;
+      setKeypadInput(nextInput);
     }
   };
 
@@ -187,15 +243,47 @@ export default function CashierPage() {
   };
 
   const handleEditItemClick = (item, idx) => {
-    const originalDrink = drinksList.find(d => String(d.item_name).toLowerCase() === String(item.drink_name).toLowerCase()) || {
-      itemid: item.id,
-      item_name: item.drink_name,
-      item_cost: item.item_cost
-    };
     setEditingIndex(idx);
-    setActiveCustomization(originalDrink);
+    const name = item.drink_name || item.item_name;
+    setActiveCustomization({
+      itemid: item.id,
+      item_name: name,
+      item_cost: item.item_cost
+    });
     setSelectedSize(item.size);
-    setSelectedToppings(Array.isArray(item.toppings) ? item.toppings : (item.topping && item.topping !== "None" ? String(item.topping).split(",").map(value => value.trim()).filter(Boolean) : []));
+    const existingToppings = Array.isArray(item.toppings) ? item.toppings : (item.topping && item.topping !== "None" ? String(item.topping).split(",").map(value => value.trim()).filter(Boolean) : []);
+    setSelectedToppings(existingToppings);
+  };
+
+  const handleSelectModalSize = (size, labelText) => {
+    setSelectedSize(size);
+  };
+
+  const handleIncrementOrderQuantity = (item, idx) => {
+    order.incrementQuantity(idx);
+  };
+
+  const handleDecrementOrderQuantity = (item, idx) => {
+    order.decrementQuantity(idx);
+  };
+
+  const handleSelectDrinkCard = (drink) => {
+    setEditingIndex(null);
+    setSelectedSize("M");
+    setSelectedToppings([]);
+    setActiveCustomization({
+      itemid: drink.itemid,
+      item_name: drink.item_name || "Unnamed Drink",
+      item_cost: drink.item_cost || 0
+    });
+  };
+
+  const handleToggleToppingSelection = (toppingName) => {
+    setSelectedToppings(prev =>
+      prev.includes(toppingName)
+        ? prev.filter(t => t !== toppingName)
+        : [...prev, toppingName]
+    );
   };
 
   // Color Palette Definitions (Specified Aesthetics)
@@ -249,11 +337,9 @@ export default function CashierPage() {
             <h1 style={{ margin: "0 0 4px 0", fontSize: "28px", fontWeight: "700", color: colors.black, textAlign: "center" }}>
               Cashier Counter
             </h1>
-
             <p style={{ margin: 0, color: "#666", fontSize: "14px", textAlign: "center" }}>
               Select menu items to customize and add to order ticket.
             </p>
-
           </header>
 
           {/* Subheading Group 1: Category Mapping Selectors */}
@@ -285,7 +371,7 @@ export default function CashierPage() {
           {/* Subheading Group 2: Sorting and Stock Condition Toggles */}
           <div className="filter-group-row" style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "24px" }}>
             <button
-              onClick={() => setSortFilter(sortFilter === "Alphabetical" ? "Reverse Alphabetical" : "Alphabetical")}
+              onClick={() => setSortFilter(prev => prev === "Alphabetical" ? "Reverse Alphabetical" : "Alphabetical")}
               style={{
                 padding: "8px 14px",
                 border: `1px solid ${colors.grayBorder}`,
@@ -302,7 +388,7 @@ export default function CashierPage() {
             </button>
 
             <button
-              onClick={() => setAvailabilityFilter(availabilityFilter === "All" ? "Available Only" : "All")}
+              onClick={() => setAvailabilityFilter(prev => prev === "Available Only" ? "All" : "Available Only")}
               style={{
                 padding: "8px 14px",
                 border: `1px solid ${colors.grayBorder}`,
@@ -325,15 +411,7 @@ export default function CashierPage() {
               const isSeasonal = drink.item_category ? String(drink.item_category).toLowerCase().includes("seasonal") : false;
               const isOutOfStock = drink.inventory_count !== undefined && Number(drink.inventory_count) <= 0;
 
-              const handleSelectDrink = () => {
-                setEditingIndex(null);
-                setActiveCustomization(drink);
-                setSelectedSize("M");
-                setSelectedToppings([]);
-              };
-
-              // Determine visual background based on status
-              let cardBg = colors.blue; // Regular drinks have light blue background color
+              let cardBg = colors.blue;
               let borderStyle = `1px solid ${colors.grayBorder}`;
               if (isOutOfStock) {
                 cardBg = "#f3f4f6";
@@ -345,7 +423,7 @@ export default function CashierPage() {
               return (
                 <button
                   key={drink.itemid || Math.random()}
-                  onClick={handleSelectDrink}
+                  onClick={() => handleSelectDrinkCard(drink)}
                   disabled={isOutOfStock}
                   style={{
                     padding: "16px",
@@ -366,7 +444,6 @@ export default function CashierPage() {
                   onMouseLeave={(e) => { if (!isOutOfStock) e.currentTarget.style.transform = 'none'; }}
                 >
                   <div style={{ display: "flex", gap: "12px", width: "100%", alignItems: "flex-start" }}>
-                    {/* RESTORED DRINK ICON COMPONENT BOX */}
                     <div style={{
                       width: "44px",
                       height: "44px",
@@ -403,12 +480,11 @@ export default function CashierPage() {
                       )}
                     </div>
 
-                    {/* Plus Icon Action Overlay Button matches medium blue */}
                     {!isOutOfStock && (
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleSelectDrink();
+                          handleSelectDrinkCard(drink);
                         }}
                         style={{
                           width: "28px",
@@ -437,14 +513,13 @@ export default function CashierPage() {
         <section className="order-summary-pane" style={{ border: `1px solid ${colors.grayBorder}`, background: colors.purple, borderRadius: "16px", padding: "20px", position: "sticky", top: "24px", display: "flex", flexDirection: "column" }}>
           <header style={{ borderBottom: `1px solid ${colors.grayBorder}`, paddingBottom: "16px", marginBottom: "16px" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-              <h3 style={{ margin: "0 0 4px 0", fontSize: "22px", fontWeight: "700" }}>
+              <h2 style={{ margin: "0 0 4px 0", fontSize: "22px", fontWeight: "700" }}>
                 Current Ticket
-              </h3>
+              </h2>
               <span style={{ fontSize: "16px", color: "#4b5563", fontWeight: "500" }}>
                 {order.count} {order.count === 1 ? 'drink' : 'drinks'} selected
               </span>
             </div>
-
           </header>
 
           <div className="ticket-items-list" style={{ flexGrow: 1, paddingRight: "4px" }}>
@@ -457,74 +532,93 @@ export default function CashierPage() {
               order.items.map((item, idx) => (
                 <div
                   key={idx}
-                  onClick={() => handleEditItemClick(item, idx)}
                   style={{
                     display: "flex",
-                    gap: "12px",
+                    flexDirection: "column",
+                    gap: "8px",
                     padding: "14px",
                     backgroundColor: colors.white,
                     border: `1px solid ${colors.grayBorder}`,
                     marginBottom: "8px",
-                    cursor: "pointer",
                     borderRadius: "12px",
                     transition: "all 0.15s ease"
                   }}
                 >
-                  {/* INLINE DRINK EMOJI BOX */}
-                  <div style={{ width: "44px", height: "44px", borderRadius: "8px", backgroundColor: colors.grayBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0, border: `1px solid ${colors.grayBorder}` }}>
-                    {getDrinkEmoji(item.drink_name)}
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    {/* INLINE DRINK EMOJI BOX */}
+                    <div style={{ width: "44px", height: "44px", borderRadius: "8px", backgroundColor: colors.grayBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0, border: `1px solid ${colors.grayBorder}` }}>
+                      {getDrinkEmoji(item.drink_name)}
+                    </div>
+
+                    <div style={{ flexGrow: 1, minWidth: 0 }}>
+                      <h3 style={{ margin: "0 0 4px 0", fontSize: "17px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.drink_name || item.item_name}</h3>
+                      <div style={{ fontSize: "15px", color: "#4b5563" }}>${parseFloat(item.item_cost || 0).toFixed(2)} · {item.size}</div>
+                      {item.topping !== "None" && <div style={{ fontSize: "14px", color: colors.purpleDark, marginTop: "4px", fontWeight: "500" }}>+ {item.topping}</div>}
+                    </div>
                   </div>
 
-                  <div style={{ flexGrow: 1, minWidth: 0 }}>
-                    <h4 style={{ margin: "0 0 4px 0", fontSize: "17px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.drink_name || item.item_name}</h4>
-                    <div style={{ fontSize: "15px", color: "#4b5563" }}>${parseFloat(item.item_cost || 0).toFixed(2)} · {item.size}</div>
-                    {item.topping !== "None" && <div style={{ fontSize: "14px", color: colors.purpleDark, marginTop: "4px", fontWeight: "500" }}>+ {item.topping}</div>}
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", alignSelf: "center" }} onClick={(e) => e.stopPropagation()}>
-                    {/* MINUS BUTTON (BIGGER) */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${colors.grayBorder}`, paddingTop: "8px", marginTop: "4px" }}>
+                    {/* NEW EXPLICIT KEYBOARD ACCESSIBLE EDIT DRINK BUTTON */}
                     <button
+                      type="button"
                       style={{
-                        border: "none",
-                        background: colors.blue,
-                        color: colors.blueDark,
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        fontWeight: "700",
-                        fontSize: "18px"
+                        padding: "6px 12px",
+                        background: colors.purple,
+                        color: colors.purpleDark,
+                        border: `1px solid ${colors.grayBorder}`,
+                        borderRadius: "8px",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        cursor: "pointer"
                       }}
-                      onClick={() => order.decrementQuantity(idx)}
+                      onClick={() => handleEditItemClick(item, idx)}
                     >
-                      -
+                      ✏️ Edit Drink
                     </button>
 
-                    <span style={{ fontSize: "16px", fontWeight: "600", minWidth: "18px", textAlign: "center" }}>{item.quantity}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <button
+                        style={{
+                          border: "none",
+                          background: colors.blue,
+                          color: colors.blueDark,
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          fontWeight: "700",
+                          fontSize: "18px"
+                        }}
+                        onClick={() => handleDecrementOrderQuantity(item, idx)}
+                      >
+                        -
+                      </button>
 
-                    {/* PLUS BUTTON (BIGGER) */}
-                    <button
-                      style={{
-                        border: "none",
-                        background: colors.blue,
-                        color: colors.blueDark,
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        fontWeight: "700",
-                        fontSize: "18px"
-                      }}
-                      onClick={() => order.incrementQuantity(idx)}
-                    >
-                      +
-                    </button>
+                      <span style={{ fontSize: "16px", fontWeight: "600", minWidth: "18px", textAlign: "center" }}>{item.quantity}</span>
+
+                      <button
+                        style={{
+                          border: "none",
+                          background: colors.blue,
+                          color: colors.blueDark,
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          fontWeight: "700",
+                          fontSize: "18px"
+                        }}
+                        onClick={() => handleIncrementOrderQuantity(item, idx)}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -542,7 +636,7 @@ export default function CashierPage() {
               <span>Tip</span><span style={{ fontWeight: "600", color: colors.black }}>${order.tip.toFixed(2)}</span>
             </div>
 
-            <button onClick={() => setShowTipModal(true)} style={{ width: "100%", padding: "10px", background: colors.white, border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "14px", color: colors.purpleDark, marginBottom: "16px" }}>
+            <button onClick={() => { setShowTipModal(true); }} style={{ width: "100%", padding: "10px", background: colors.white, border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "14px", color: colors.purpleDark, marginBottom: "16px" }}>
               ✏️ Modify Tip Options
             </button>
 
@@ -557,26 +651,28 @@ export default function CashierPage() {
         </section>
       </div>
 
-      {/* POPUP MODAL A: COMPONENT & DIMENSIONS CUSTOMIZATION ENGINE */}
+      {/* POPUP MODAL A: COMPONENT & DIMENSIONS CUSTOMIZATION ENGINE WITH FOCUS TRAP */}
       {activeCustomization && (
         <div className="modal-backdrop" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" }}>
-          <div className="modal-content" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "360px", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
-            <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "700" }}>{editingIndex !== null ? `Edit: ${activeCustomization.item_name}` : `Customize: ${activeCustomization.item_name}`}</h3>
+          <div ref={customModalRef} className="modal-content" role="dialog" aria-modal="true" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "360px", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
+            <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "700" }}>
+              {editingIndex !== null ? `Edit: ${activeCustomization.item_name}` : `Customize: ${activeCustomization.item_name}`}
+            </h3>
 
             <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Select Size</label>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={() => setSelectedSize("M")} style={{ flex: 1, padding: "12px", background: selectedSize === "M" ? colors.black : colors.white, color: selectedSize === "M" ? colors.white : colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "14px" }}>Medium</button>
-                <button onClick={() => setSelectedSize("L")} style={{ flex: 1, padding: "12px", background: selectedSize === "L" ? colors.black : colors.white, color: selectedSize === "L" ? colors.white : colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "14px" }}>Large (+$0.50)</button>
+              <span id="size-label" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Select Size</span>
+              <div style={{ display: "flex", gap: "8px" }} role="group" aria-labelledby="size-label">
+                <button type="button" onClick={() => handleSelectModalSize("M", "Medium")} style={{ flex: 1, padding: "12px", background: selectedSize === "M" ? colors.black : colors.white, color: selectedSize === "M" ? colors.white : colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "14px" }}>Medium</button>
+                <button type="button" onClick={() => handleSelectModalSize("L", "Large (+$0.50)")} style={{ flex: 1, padding: "12px", background: selectedSize === "L" ? colors.black : colors.white, color: selectedSize === "L" ? colors.white : colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "14px" }}>Large (+$0.50)</button>
               </div>
             </div>
 
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Select Toppings</label>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", padding: "12px" }}>
+              <span id="toppings-label" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Select Toppings</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", padding: "12px" }} role="group" aria-labelledby="toppings-label">
                 {toppingsList.map((top) => (
                   <label key={top.itemid || Math.random()} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
-                    <input type="checkbox" checked={selectedToppings.includes(top.item_name)} onChange={() => setSelectedToppings(prev => prev.includes(top.item_name) ? prev.filter(value => value !== top.item_name) : [...prev, top.item_name])} />
+                    <input type="checkbox" checked={selectedToppings.includes(top.item_name)} onChange={() => handleToggleToppingSelection(top.item_name)} />
                     {top.item_name} (+${parseFloat(top.item_cost || 0).toFixed(2)})
                   </label>
                 ))}
@@ -584,42 +680,43 @@ export default function CashierPage() {
             </div>
 
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-              <button onClick={() => { setActiveCustomization(null); setEditingIndex(null); }} style={{ padding: "10px 16px", background: colors.grayBg, color: colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "8px", cursor: "pointer", fontWeight: "500", fontSize: "14px" }}>Cancel</button>
+              <button type="button" onClick={() => { setActiveCustomization(null); setEditingIndex(null); }} style={{ padding: "10px 16px", background: colors.grayBg, color: colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "8px", cursor: "pointer", fontWeight: "500", fontSize: "14px" }}>Cancel</button>
               <button
+                type="button"
                 onClick={() => {
-                   const uniqueToppings = [...new Set(selectedToppings)].sort();
-                   const toppingLabel = uniqueToppings.join(', ') || 'None';
-                   const basePrice = parseFloat(activeCustomization.item_cost || 0);
-                   const toppingPrice = uniqueToppings.reduce((sum, name) => {
-                     const toppingObj = toppingsList.find(t => t.item_name === name);
-                     return sum + (toppingObj ? parseFloat(toppingObj.item_cost || 0) : 0);
-                   }, 0);
-                   const sizeSurcharge = selectedSize === "L" ? 0.50 : 0.0;
-                   const combinedCost = basePrice + toppingPrice + sizeSurcharge;
+                  const uniqueToppings = [...new Set(selectedToppings)].sort();
+                  const toppingLabel = uniqueToppings.join(', ') || 'None';
+                  const basePrice = parseFloat(activeCustomization.item_cost || 0);
+                  const toppingPrice = uniqueToppings.reduce((sum, name) => {
+                    const toppingObj = toppingsList.find(t => t.item_name === name);
+                    return sum + (toppingObj ? parseFloat(toppingObj.item_cost || 0) : 0);
+                  }, 0);
+                  const sizeSurcharge = selectedSize === "L" ? 0.50 : 0.0;
+                  const combinedCost = basePrice + toppingPrice + sizeSurcharge;
 
-                   if (editingIndex !== null) {
-                     const originalQuantity = order.items[editingIndex].quantity;
-                     order.updateItem(editingIndex, {
-                       id: activeCustomization.itemid,
-                       drink_name: activeCustomization.item_name,
-                       item_cost: combinedCost,
-                       size: selectedSize,
-                       topping: toppingLabel,
-                       toppings: uniqueToppings,
-                       quantity: originalQuantity
-                     });
-                   } else {
-                     order.addDrink(
-                       {
-                         itemid: activeCustomization.itemid,
-                         item_name: activeCustomization.item_name,
-                         drink_name: activeCustomization.item_name,
-                         item_cost: combinedCost
-                       },
-                       selectedSize,
-                       uniqueToppings
-                     );
-                   }
+                  if (editingIndex !== null) {
+                    const originalQuantity = order.items[editingIndex].quantity;
+                    order.updateItem(editingIndex, {
+                      id: activeCustomization.itemid,
+                      drink_name: activeCustomization.item_name,
+                      item_cost: combinedCost,
+                      size: selectedSize,
+                      topping: toppingLabel,
+                      toppings: uniqueToppings,
+                      quantity: originalQuantity
+                    });
+                  } else {
+                    order.addDrink(
+                      {
+                        itemid: activeCustomization.itemid,
+                        item_name: activeCustomization.item_name,
+                        drink_name: activeCustomization.item_name,
+                        item_cost: combinedCost
+                      },
+                      selectedSize,
+                      uniqueToppings
+                    );
+                  }
 
                   setActiveCustomization(null);
                   setEditingIndex(null);
@@ -633,17 +730,19 @@ export default function CashierPage() {
         </div>
       )}
 
-      {/* POPUP MODAL B: TIP INTERFACE SETTINGS */}
+      {/* POPUP MODAL B: TIP INTERFACE SETTINGS WITH FOCUS TRAP */}
       {showTipModal && (
         <div className="modal-backdrop" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" }}>
-          <div className="modal-content" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "360px", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
+          <div ref={tipModalRef} className="modal-content" role="dialog" aria-modal="true" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "360px", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
             <h3 style={{ margin: "0 0 16px 0", fontSize: "18px", fontWeight: "700" }}>Select Tip Amount</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "20px" }}>
               {[0.05, 0.10, 0.15, 0.20].map((rate) => (
                 <button
                   key={rate}
+                  type="button"
                   onClick={() => {
-                    order.setTip(parseFloat((order.subtotal * rate).toFixed(2)));
+                    const tipVal = parseFloat((order.subtotal * rate).toFixed(2));
+                    order.setTip(tipVal);
                     setShowTipModal(false);
                   }}
                   style={{ padding: "10px 4px", fontSize: "13px", fontWeight: "600", cursor: "pointer", border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", background: colors.purple, color: colors.purpleDark }}
@@ -654,8 +753,9 @@ export default function CashierPage() {
             </div>
 
             <div style={{ borderTop: `1px solid ${colors.grayBorder}`, paddingTop: "16px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Enter Custom Dollar Amount</label>
+              <label htmlFor="custom-tip-input" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Enter Custom Dollar Amount</label>
               <input
+                id="custom-tip-input"
                 type="text"
                 readOnly
                 value={keypadInput ? `$${keypadInput}` : "$0.00"}
@@ -666,6 +766,7 @@ export default function CashierPage() {
                 {["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "Clear"].map((btn) => (
                   <button
                     key={btn}
+                    type="button"
                     onClick={() => handleKeypadPress(btn)}
                     style={{ padding: "12px", fontSize: "15px", fontWeight: "600", cursor: "pointer", background: btn === "Clear" ? colors.pink : colors.grayBg, color: btn === "Clear" ? colors.pinkDark : colors.black, border: `1px solid ${colors.grayBorder}`, borderRadius: "10px" }}
                   >
@@ -676,8 +777,8 @@ export default function CashierPage() {
             </div>
 
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-              <button onClick={() => { setKeypadInput(""); setShowTipModal(false); }} style={{ padding: "10px 16px", background: colors.white, border: `1px solid ${colors.grayBorder}`, borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "500" }}>Close</button>
-              <button onClick={applyCustomKeypadTip} disabled={!keypadInput} style={{ padding: "10px 16px", background: colors.black, color: colors.white, border: "none", borderRadius: "8px", fontWeight: "600", cursor: !keypadInput ? "not-allowed" : "pointer", fontSize: "14px" }}>Apply</button>
+              <button type="button" onClick={() => { setKeypadInput(""); setShowTipModal(false); }} style={{ padding: "10px 16px", background: colors.white, border: `1px solid ${colors.grayBorder}`, borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "500" }}>Close</button>
+              <button type="button" onClick={applyCustomKeypadTip} disabled={!keypadInput} style={{ padding: "10px 16px", background: colors.black, color: colors.white, border: "none", borderRadius: "8px", fontWeight: "600", cursor: !keypadInput ? "not-allowed" : "pointer", fontSize: "14px" }}>Apply</button>
             </div>
           </div>
         </div>

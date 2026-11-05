@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 const colors = {
   white: "#ffffff",
@@ -77,6 +77,8 @@ export default function ManagerDashboardPage() {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState("");
 
+  const formCloseRef = useRef(null);
+
   const loadMenu = async () => {
     setMenuLoading(true);
     setMenuError("");
@@ -95,6 +97,16 @@ export default function ManagerDashboardPage() {
   useEffect(() => {
     loadMenu();
   }, []);
+
+  useEffect(() => {
+    if (showAdd || editingItem) {
+      formCloseRef.current?.focus();
+    }
+  }, [showAdd, editingItem]);
+
+  const handleTabChange = (tabValue) => {
+    setActiveTab(tabValue);
+  };
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -308,6 +320,7 @@ export default function ManagerDashboardPage() {
           <button
             onClick={() => setMessage("")}
             style={{ background: "none", border: "none", fontSize: "22px", color: "#065f46", cursor: "pointer", padding: "0 4px" }}
+            aria-label="Close notification"
           >
             ×
           </button>
@@ -324,7 +337,7 @@ export default function ManagerDashboardPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "8px", marginBottom: "24px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "24px", flexWrap: "wrap" }} role="tablist" aria-label="Dashboard sections">
         {[
           { value: "menu", label: "Menu Management" },
           { value: "reports", label: "Reports" },
@@ -333,7 +346,9 @@ export default function ManagerDashboardPage() {
           return (
             <button
               key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
+              role="tab"
+              aria-selected={selected}
+              onClick={() => handleTabChange(tab.value)}
               style={buttonStyle(selected ? colors.purpleDark : colors.purple, selected ? colors.white : colors.purpleDark, `1px solid ${colors.grayBorder}`)}
             >
               {tab.label}
@@ -343,22 +358,26 @@ export default function ManagerDashboardPage() {
       </div>
 
       {activeTab === "menu" && (
-        <section>
+        <section role="tabpanel" aria-label="Menu Management section">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
             <input
               type="text"
               placeholder="Search menu items"
+              aria-label="Search menu items"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               style={{ ...inputStyle, maxWidth: "320px" }}
             />
-            <button onClick={() => { setShowAdd(true); setEditingItem(null); setForm(emptyForm); }} style={buttonStyle(colors.mediumBlue, colors.white)}>
+            <button
+              onClick={() => { setShowAdd(true); setEditingItem(null); setForm(emptyForm); }}
+              style={buttonStyle(colors.mediumBlue, colors.white)}
+            >
               Add Menu Item
             </button>
           </div>
 
           {menuError && (
-            <div style={{ color: "#b91c1c", marginBottom: "12px", fontWeight: "600" }}>{menuError}</div>
+            <div style={{ color: "#b91c1c", marginBottom: "12px", fontWeight: "600" }} aria-live="assertive">{menuError}</div>
           )}
 
           {menuLoading ? (
@@ -388,10 +407,10 @@ export default function ManagerDashboardPage() {
                       <td style={tdStyle}>{money(item.item_cost)}</td>
                       <td style={tdStyle}>
                         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          <button onClick={() => startEdit(item)} style={buttonStyle(colors.purple, colors.purpleDark, `1px solid ${colors.grayBorder}`)}>
+                          <button onClick={() => startEdit(item)} style={buttonStyle(colors.purple, colors.purpleDark, `1px solid ${colors.grayBorder}`)} aria-label={`Edit ${item.item_name}`}>
                             Edit
                           </button>
-                          <button onClick={() => deleteItem(item)} style={buttonStyle(colors.pink, colors.pinkDark, `1px solid ${colors.grayBorder}`)}>
+                          <button onClick={() => deleteItem(item)} style={buttonStyle(colors.pink, colors.pinkDark, `1px solid ${colors.grayBorder}`)} aria-label={`Delete ${item.item_name}`}>
                             Delete
                           </button>
                         </div>
@@ -411,11 +430,11 @@ export default function ManagerDashboardPage() {
       )}
 
       {activeTab === "reports" && (
-        <section>
+        <section role="tabpanel" aria-label="Reports section">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "16px", alignItems: "end" }}>
             <div>
-              <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Report</label>
-              <select value={reportType} onChange={(event) => setReportType(event.target.value)} style={inputStyle}>
+              <label htmlFor="report-select" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Report</label>
+              <select id="report-select" value={reportType} onChange={(event) => setReportType(event.target.value)} style={inputStyle}>
                 {reportOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
@@ -424,19 +443,19 @@ export default function ManagerDashboardPage() {
             {reportType !== "inventory" && (
               <>
                 <div>
-                  <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Start Date</label>
-                  <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} style={inputStyle} />
+                  <label htmlFor="start-date" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Start Date</label>
+                  <input id="start-date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>End Date</label>
-                  <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} style={inputStyle} />
+                  <label htmlFor="end-date" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>End Date</label>
+                  <input id="end-date" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} style={inputStyle} />
                 </div>
               </>
             )}
             {reportType === "top-items" && (
               <div>
-                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Limit</label>
-                <input type="number" min="1" max="50" value={topLimit} onChange={(event) => setTopLimit(Number(event.target.value) || 10)} style={inputStyle} />
+                <label htmlFor="top-limit" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Limit</label>
+                <input id="top-limit" type="number" min="1" max="50" value={topLimit} onChange={(event) => setTopLimit(Number(event.target.value) || 10)} style={inputStyle} />
               </div>
             )}
             <div>
@@ -447,7 +466,7 @@ export default function ManagerDashboardPage() {
           </div>
 
           {reportError && (
-            <div style={{ color: "#b91c1c", marginBottom: "12px", fontWeight: "600" }}>{reportError}</div>
+            <div style={{ color: "#b91c1c", marginBottom: "12px", fontWeight: "600" }} aria-live="assertive">{reportError}</div>
           )}
 
           {!reportLoading && !reportError && reportData?.type === "sales-summary" && (
@@ -677,6 +696,9 @@ export default function ManagerDashboardPage() {
         >
           <form
             onSubmit={editingItem ? submitEdit : submitAdd}
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingItem ? `Edit ${editingItem.item_name}` : "Add Menu Item"}
             style={{
               background: colors.white,
               padding: "24px",
@@ -690,12 +712,24 @@ export default function ManagerDashboardPage() {
               gap: "12px",
             }}
           >
-            <h3 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700" }}>
-              {editingItem ? `Edit ${editingItem.item_name}` : "Add Menu Item"}
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: "0", fontSize: "20px", fontWeight: "700" }}>
+                {editingItem ? `Edit ${editingItem.item_name}` : "Add Menu Item"}
+              </h3>
+              <button
+                ref={formCloseRef}
+                type="button"
+                onClick={resetForm}
+                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: colors.black }}
+                aria-label="Close dialog"
+              >
+                ×
+              </button>
+            </div>
             <input
               type="text"
               placeholder="Item name"
+              aria-label="Item name"
               value={form.item_name}
               onChange={(event) => setForm({ ...form, item_name: event.target.value })}
               style={inputStyle}
@@ -704,6 +738,7 @@ export default function ManagerDashboardPage() {
             <input
               type="number"
               placeholder="Calories"
+              aria-label="Calories"
               value={form.item_cal}
               onChange={(event) => setForm({ ...form, item_cal: event.target.value })}
               style={inputStyle}
@@ -712,12 +747,14 @@ export default function ManagerDashboardPage() {
               type="number"
               step="0.01"
               placeholder="Price"
+              aria-label="Price"
               value={form.item_cost}
               onChange={(event) => setForm({ ...form, item_cost: event.target.value })}
               style={inputStyle}
             />
             <select
               value={form.item_category}
+              aria-label="Category"
               onChange={(event) => setForm({ ...form, item_category: event.target.value })}
               style={inputStyle}
             >
@@ -728,11 +765,12 @@ export default function ManagerDashboardPage() {
             <input
               type="text"
               placeholder="Base item type (optional)"
+              aria-label="Base item type"
               value={form.base_item_type}
               onChange={(event) => setForm({ ...form, base_item_type: event.target.value })}
               style={inputStyle}
             />
-            {menuError && <div style={{ color: "#b91c1c", fontWeight: "600" }}>{menuError}</div>}
+            {menuError && <div style={{ color: "#b91c1c", fontWeight: "600" }} aria-live="assertive">{menuError}</div>}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
               <button type="button" onClick={resetForm} style={buttonStyle(colors.grayBg, colors.black, `1px solid ${colors.grayBorder}`)}>
                 Cancel

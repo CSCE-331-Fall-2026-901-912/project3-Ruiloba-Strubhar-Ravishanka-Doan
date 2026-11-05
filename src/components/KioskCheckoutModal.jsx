@@ -5,19 +5,30 @@ const money = amount => `$${Number(amount).toFixed(2)}`;
 export default function KioskCheckoutModal({ order, onClose, onConfirm, submitting }) {
   const [tipOption, setTipOption] = useState(0);
   const [customTip, setCustomTip] = useState('');
+
   const tip = tipOption === 'custom' ? Number(customTip || 0) : Math.round(order.subtotal * tipOption * 100) / 100;
   const valid = Number.isFinite(tip) && tip >= 0 && tip <= 1000;
 
   const pressKey = key => {
     if (submitting) return;
     setCustomTip(current => {
-      if (key === 'clear') return '';
-      if (key === 'backspace') return current.slice(0, -1);
-      if (key === '.') return current.includes('.') ? current : `${current || '0'}.`;
-      const decimals = current.split('.')[1];
-      if (decimals !== undefined && decimals.length >= 2) return current;
-      const next = current === '0' ? key : current + key;
-      return Number(next) > 1000 ? current : next;
+      let updatedValue = current;
+      if (key === 'clear') {
+        updatedValue = '';
+      } else if (key === 'backspace') {
+        updatedValue = current.slice(0, -1);
+      } else if (key === '.') {
+        updatedValue = current.includes('.') ? current : `${current || '0'}.`;
+      } else {
+        const decimals = current.split('.')[1];
+        if (decimals !== undefined && decimals.length >= 2) return current;
+        const next = current === '0' ? key : current + key;
+        if (Number(next) > 1000) {
+          return current;
+        }
+        updatedValue = next;
+      }
+      return updatedValue;
     });
   };
 
@@ -32,7 +43,7 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
     </div>
     {tipOption === 'custom' && <div className="pg-tip-custom">
       <span className="pg-tip-label">Custom tip ($)</span>
-      <output className="pg-tip-display" aria-live="polite">${customTip || '0.00'}</output>
+      <output className="pg-tip-display">${customTip || '0.00'}</output>
       <div className="pg-tip-numpad" aria-label="Custom tip number pad">
         {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', '.', '⌫'].map(key => <button
           key={key} type="button" disabled={submitting}
