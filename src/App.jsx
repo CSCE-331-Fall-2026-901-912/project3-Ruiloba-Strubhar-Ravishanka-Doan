@@ -4,6 +4,7 @@ import CashierPage from "./pages/CashierPage.jsx";
 import CustomerKioskPage from "./pages/CustomerKioskPage.jsx";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage.jsx";
 import PortalPage from "./pages/PortalPage.jsx";
+import PageMagnifier from "./components/PageMagnifier.jsx";
 
 const pages = {
   manager: ManagerDashboardPage,
@@ -23,11 +24,14 @@ export default function App() {
   const Page = pages[current] || PortalPage;
 
   return (
-    <div className={`app app-${current}`}>
-      <Header current={current} />
-      <div className="page-shell">
-        {current === "home" ? <PortalPage onNavigate={setCurrent} /> : <Page />}
+    <>
+      <div className={`app app-${current}`}>
+        <Header current={current} />
+        <div className="page-shell">
+          {current === "home" ? <PortalPage onNavigate={setCurrent} /> : <Page />}
+        </div>
       </div>
-    </div>
+      <PageMagnifier />
+    </>
   );
 }
