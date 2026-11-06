@@ -267,6 +267,13 @@ export default function CashierPage() {
     order.decrementQuantity(idx);
   };
 
+  const handleCompletelyRemoveItem = (item, idx) => {
+    const countToRemove = item.quantity || 1;
+    for (let i = 0; i < countToRemove; i++) {
+      order.decrementQuantity(idx);
+    }
+  };
+
   const handleSelectDrinkCard = (drink) => {
     setEditingIndex(null);
     setSelectedSize("M");
@@ -557,26 +564,55 @@ export default function CashierPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${colors.grayBorder}`, paddingTop: "8px", marginTop: "4px" }}>
-                    {/* NEW EXPLICIT KEYBOARD ACCESSIBLE EDIT DRINK BUTTON */}
-                    <button
-                      type="button"
-                      style={{
-                        padding: "6px 12px",
-                        background: colors.purple,
-                        color: colors.purpleDark,
-                        border: `1px solid ${colors.grayBorder}`,
-                        borderRadius: "8px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: "pointer"
-                      }}
-                      onClick={() => handleEditItemClick(item, idx)}
-                    >
-                      ✏️ Edit Drink
-                    </button>
 
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${colors.grayBorder}`, paddingTop: "8px", marginTop: "4px", gap: "8px" }}>
+                    {/* Group actions together on the left side */}
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      {/* NEW EXPLICIT KEYBOARD ACCESSIBLE EDIT DRINK BUTTON */}
+                      <button
+                        type="button"
+                        style={{
+                          padding: "6px 12px",
+                          background: colors.purple,
+                          color: colors.purpleDark,
+                          border: `1px solid ${colors.grayBorder}`,
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          cursor: "pointer"
+                        }}
+                        onClick={() => handleEditItemClick(item, idx)}
+                      >
+                        ✏️ Edit Drink
+                      </button>
+
+                      {/* NEW COMPLETELY REMOVE DRINK BUTTON */}
+                      <button
+                        type="button"
+                        style={{
+                          padding: "6px 12px",
+                          background: "#fee2e2",
+                          color: "#991b1b",
+                          border: "1px solid #fca5a5",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          cursor: "pointer"
+                        }}
+                        onClick={() => handleCompletelyRemoveItem(item, idx)} // Pointing to our new cleaner looping helper
+                      >
+                        🗑️ Remove
+                      </button>
+
+                    </div>
+
+                    {/* Quantity selectors will stay perfectly justified on the right side */}
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+
+
+
+
                       <button
                         style={{
                           border: "none",
