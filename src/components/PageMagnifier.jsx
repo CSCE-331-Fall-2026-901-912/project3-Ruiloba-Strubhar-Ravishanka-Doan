@@ -58,21 +58,33 @@ export default function PageMagnifier() {
 
     const updateLens = () => {
       const { x, y } = pointerRef.current;
-      const lensLeft = Math.min(
-        x + 20,
-        Math.max(EDGE_PADDING, window.innerWidth - LENS_WIDTH - EDGE_PADDING),
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      lens.style.width = `${Math.max(
+        1,
+        Math.min(LENS_WIDTH, viewportWidth - EDGE_PADDING * 2),
+      )}px`;
+      lens.style.height = `${Math.max(
+        1,
+        Math.min(LENS_HEIGHT, viewportHeight - EDGE_PADDING * 2),
+      )}px`;
+
+      const lensBounds = lens.getBoundingClientRect();
+      const lensLeft = Math.max(
+        EDGE_PADDING,
+        Math.min(x + 20, viewportWidth - lensBounds.width - EDGE_PADDING),
       );
-      const lensTop = Math.min(
-        y + 20,
-        Math.max(EDGE_PADDING, window.innerHeight - LENS_HEIGHT - EDGE_PADDING),
+      const lensTop = Math.max(
+        EDGE_PADDING,
+        Math.min(y + 20, viewportHeight - lensBounds.height - EDGE_PADDING),
       );
 
       lens.style.left = `${lensLeft}px`;
       lens.style.top = `${lensTop}px`;
       content.style.transform = `translate3d(${
-        LENS_WIDTH / 2 - x * ZOOM
+        lens.clientWidth / 2 - x * ZOOM
       }px, ${
-        LENS_HEIGHT / 2 - (y + window.scrollY) * ZOOM
+        lens.clientHeight / 2 - (y + window.scrollY) * ZOOM
       }px, 0) scale(${ZOOM})`;
     };
 
@@ -98,6 +110,15 @@ export default function PageMagnifier() {
       });
     };
 
+    const updateViewport = () => {
+      pointerRef.current = {
+        x: Math.min(pointerRef.current.x, Math.max(0, window.innerWidth - EDGE_PADDING)),
+        y: Math.min(pointerRef.current.y, Math.max(0, window.innerHeight - EDGE_PADDING)),
+      };
+      updateSnapshot();
+      updateLens();
+    };
+
     const observer = new MutationObserver(updateSnapshot);
     observer.observe(pageRoot, {
       attributes: true,
@@ -109,7 +130,7 @@ export default function PageMagnifier() {
     window.addEventListener("pointermove", updatePointer);
     window.addEventListener("scroll", updateSnapshot, { capture: true, passive: true });
     window.addEventListener("input", updateSnapshot, true);
-    window.addEventListener("resize", updateSnapshot);
+    window.addEventListener("resize", updateViewport);
     syncPageSnapshot(pageRoot, content);
     updateLens();
 
@@ -118,7 +139,7 @@ export default function PageMagnifier() {
       window.removeEventListener("pointermove", updatePointer);
       window.removeEventListener("scroll", updateSnapshot, true);
       window.removeEventListener("input", updateSnapshot, true);
-      window.removeEventListener("resize", updateSnapshot);
+      window.removeEventListener("resize", updateViewport);
       if (pointerFrame) {
         window.cancelAnimationFrame(pointerFrame);
       }
