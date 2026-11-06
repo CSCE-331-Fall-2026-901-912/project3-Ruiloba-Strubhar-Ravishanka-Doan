@@ -34,7 +34,7 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
 
   return <div className="pg-modal-backdrop"><section className="pg-modal" role="dialog" aria-modal="true" aria-labelledby="pg-checkout-title">
     <button className="pg-close" type="button" onClick={onClose} disabled={submitting} aria-label="Close checkout">×</button>
-    <p className="pg-eyebrow">ALMOST THERE</p><h2 id="pg-checkout-title">Review your order</h2>
+    <p className="pg-eyebrow">ALMOST THERE</p><h2 id="pg-checkout-title">Review your Order</h2>
     <p>{order.count} drink{order.count === 1 ? '' : 's'} · Subtotal {money(order.subtotal)} · Tax {money(order.tax)}</p>
     <h3>Add a tip</h3>
     <div className="pg-tip-options">
@@ -47,7 +47,7 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
       <div className="pg-tip-numpad" aria-label="Custom tip number pad">
         {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', '.', '⌫'].map(key => <button
           key={key} type="button" disabled={submitting}
-          className={key === 'Clear' ? 'pg-tip-key-clear' : key === '⌫' ? 'pg-tip-key-delete' : ''}
+          className={tipOption === 'custom' && key === 'Clear' ? 'pg-tip-key-clear active' : key === 'Clear' ? 'pg-tip-key-clear' : key === '⌫' ? 'pg-tip-key-delete' : ''}
           aria-label={key === '⌫' ? 'Delete last digit' : key === '.' ? 'Decimal point' : key}
           onClick={() => pressKey(key === 'Clear' ? 'clear' : key === '⌫' ? 'backspace' : key)}
         >{key}</button>)}

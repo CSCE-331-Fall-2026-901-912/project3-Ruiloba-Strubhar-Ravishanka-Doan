@@ -26,7 +26,7 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
     );
     if (focusableElements.length === 0) return;
 
-    const firstElement = focusableElements;
+    const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
 
     if (event.shiftKey) {
@@ -71,19 +71,19 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
         <p className="pg-muted">Base price ${Number(drink.item_cost).toFixed(2)}</p>
 
         <div style={{ marginBottom: "20px" }}>
-          <span id="pg-toppings-label" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Toppings</span>
-          <div role="group" aria-labelledby="pg-toppings-label" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", border: "1px solid #d5b5e4", borderRadius: "10px", padding: "12px" }}>
+          <span id="pg-toppings-label" className="pg-label-heading" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Toppings</span>
+          <div role="group" aria-labelledby="pg-toppings-label" className="pg-toppings-list-box" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", border: "1px solid #d5b5e4", borderRadius: "10px", padding: "12px" }}>
             {toppings.map(item => {
               const itemIdStr = String(item.itemid);
               return (
-                <label key={item.itemid} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
+                <label key={item.itemid} className="pg-customize-label" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
                   <input
                     type="checkbox"
                     checked={selectedToppingIds.includes(itemIdStr)}
                     onChange={() => toggleTopping(itemIdStr)}
                     aria-label={`${item.item_name} (+${Number(item.item_cost).toFixed(2)})`}
                   />
-                  {item.item_name} (+${Number(item.item_cost).toFixed(2)})
+                  <span>{item.item_name} (+${Number(item.item_cost).toFixed(2)})</span>
                 </label>
               );
             })}
@@ -96,6 +96,7 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
             <button
               type="button"
               onClick={() => setSize('M')}
+              className={size === 'M' ? 'active' : ''}
               aria-pressed={size === 'M'}
               aria-label="Medium"
               style={{
@@ -116,6 +117,7 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
             <button
               type="button"
               onClick={() => setSize('L')}
+              className={size === 'L' ? 'active' : ''}
               aria-pressed={size === 'L'}
               aria-label="Large (+$0.50)"
               style={{

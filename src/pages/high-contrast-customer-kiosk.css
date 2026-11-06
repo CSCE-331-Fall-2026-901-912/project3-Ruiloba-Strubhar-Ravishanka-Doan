@@ -1,0 +1,275 @@
+/* high-contrast-customer-kiosk.css */
+
+/* Core Theme Override: Deep Navy/Violet background for pure AAA visibility */
+.pg-kiosk.high-contrast {
+    background-color: #120024 !important;
+    color: #ffffff !important;
+}
+
+/* Clear out the remaining bright white background gutters seen on the outer sides of the screen wrapper */
+body,
+html,
+:root,
+[class*="wrapper"],
+[class*="container-root"] {
+    background-color: #120024 !important;
+    background: #120024 !important;
+}
+
+/* Force layout hero container strip to clear background image styles */
+.pg-kiosk.high-contrast .pg-hero {
+    background-color: #1e003a !important;
+    background: #1e003a !important;
+    border-bottom: 4px solid #ffffff !important;
+}
+
+/* Force all encapsulated children texts to become highly visible */
+.pg-kiosk.high-contrast h1,
+.pg-kiosk.high-contrast h2,
+.pg-kiosk.high-contrast h3,
+.pg-kiosk.high-contrast strong,
+.pg-kiosk.high-contrast span,
+.pg-kiosk.high-contrast p,
+.pg-kiosk.high-contrast label {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    text-shadow: none !important;
+}
+
+/* Faint category sub-labels / eyebrows using sharp contrast pink */
+.pg-kiosk.high-contrast .pg-eyebrow,
+.pg-kiosk.high-contrast [class*="eyebrow"],
+.pg-kiosk.high-contrast [class*="subtitle"] {
+    color: #ffb3df !important;
+    font-weight: 900 !important;
+}
+
+/* Exhaustive Sub-component Form Control Overrides (Fixes missing buttons/tabs) */
+.pg-kiosk.high-contrast button,
+.pg-kiosk.high-contrast input,
+.pg-kiosk.high-contrast select,
+.pg-kiosk.high-contrast [role="button"],
+.pg-kiosk.high-contrast .pg-menu-panel button {
+    background-color: #1e003a !important;
+    color: #ffffff !important;
+    border: 3px solid #ffffff !important;
+    font-weight: bold !important;
+    border-radius: 4px !important;
+}
+
+/* Selected Tab Filter States */
+.pg-kiosk.high-contrast button.active,
+.pg-kiosk.high-contrast [class*="active"],
+.pg-kiosk.high-contrast [aria-selected="true"] {
+    background-color: #ffffff !important;
+    color: #120024 !important;
+    border: 3px solid #ffb3df !important;
+}
+
+/* Main panel blocks */
+.pg-kiosk.high-contrast .pg-menu-panel section,
+.pg-kiosk.high-contrast .pg-menu-panel,
+.pg-kiosk.high-contrast .pg-layout>section,
+.pg-kiosk.high-contrast .pg-layout>div,
+.pg-kiosk.high-contrast .pg-ticket {
+    background-color: #1e003a !important;
+    border: 4px solid #ffffff !important;
+}
+
+/* Menu panel drink buttons */
+.pg-kiosk.high-contrast .pg-drink {
+    background-color: #1e003a !important;
+    border: 3px solid #ffffff !important;
+}
+
+/* ==========================================================================
+   FIXED TICKET & CONTAINER CLEANUP (Removes overlapping white border lines)
+   ========================================================================= */
+
+/* Remove harsh nested structural borders inside the main order scroll layout area */
+.pg-kiosk.high-contrast .pg-ticket-items,
+.pg-kiosk.high-contrast .pg-ticket-item-heading,
+.pg-kiosk.high-contrast .pg-ticket-item-bottom,
+.pg-kiosk.high-contrast .pg-ticket-actions {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Retain a clean, singular division line between distinct item rows on ticket */
+.pg-kiosk.high-contrast .pg-ticket-item {
+    background-color: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid #ffffff !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 12px !important;
+    box-shadow: none !important;
+}
+
+/* ==========================================================================
+   COLOR CORRECTIONS & TYPOGRAPHY SELECTORS
+   ========================================================================= */
+
+/* Keep regular running totals readable on dark violet templates */
+.pg-kiosk.high-contrast .pg-ticket-line-price,
+.pg-kiosk.high-contrast .pg-totals strong,
+.pg-kiosk.high-contrast .pg-grand-total strong {
+    color: #ffb3df !important;
+    background: transparent !important;
+}
+
+/* --------------------------------------------------------------------------
+   Price Capsule Text Inside Menu Grid Selection Buttons
+   -------------------------------------------------------------------------- */
+.pg-kiosk.high-contrast .pg-drink b,
+.pg-kiosk.high-contrast .pg-drinks button b,
+.pg-kiosk.high-contrast button b {
+    color: #120024 !important;
+    /* Force explicit dark text inside capsule layout */
+    background-color: #ffffff !important;
+    font-weight: 900 !important;
+}
+
+/* --------------------------------------------------------------------------
+   FIX: Targeted Drink Names Tweaks (Menu vs Ticket)
+   -------------------------------------------------------------------------- */
+
+/* 1. Change ONLY the drink name text inside the main selection menu grid to pink */
+.pg-kiosk.high-contrast .pg-drink strong,
+.pg-kiosk.high-contrast .pg-drink-copy strong {
+    color: #ffb3df !important;
+    font-weight: 900 !important;
+}
+
+/* 2. Change ONLY the item titles on the current checkout ticket to be bold (keeping text white) */
+.pg-kiosk.high-contrast .pg-ticket-item-heading strong {
+    color: #ffffff !important;
+    font-weight: 950 !important;
+    font-size: large !important;
+    /* Forces maximum bold thickness stroke */
+}
+
+/* --------------------------------------------------------------------------
+   SPLIT SELECTION COLORS: Size (White) and Toppings (Pink)
+   -------------------------------------------------------------------------- */
+.pg-kiosk.high-contrast .pg-item-size {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+.pg-kiosk.high-contrast .pg-item-divider {
+    color: #ffffff !important;
+}
+
+.pg-kiosk.high-contrast .pg-item-toppings {
+    color: #ffb3df !important;
+    font-weight: 800 !important;
+}
+
+/* Calories text configurations */
+.pg-kiosk.high-contrast [class*="cal"],
+.pg-kiosk.high-contrast [class*="calorie"] {
+    color: #ffffff !important;
+    text-decoration: underline !important;
+}
+
+/* Overriding Modal Popups (Fixes Customize and Checkout overlays) */
+.pg-kiosk.high-contrast [class*="modal"],
+.pg-kiosk.high-contrast [class*="overlay"],
+.pg-kiosk.high-contrast [class*="popup"],
+.pg-kiosk.high-contrast [role="dialog"] {
+    background-color: #120024 !important;
+    border: 5px solid #ffffff !important;
+}
+
+/* ==========================================================================
+   Fixed Accessibility Button Container & Styles
+   ========================================================================== */
+
+.pg-a11y-controls,
+.pg-a11y-stacked-panel {
+    position: fixed;
+    bottom: 75px !important;
+    left: 15px !important;
+    display: flex;
+    flex-direction: column !important;
+    width: auto;
+    z-index: 2147483647 !important;
+}
+
+.pg-contrast-toggle-btn {
+    background-color: #ffffff !important;
+    color: #120024 !important;
+    border: 3px solid #ffb3df !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+    text-align: center !important;
+    width: 145px !important;
+    box-sizing: border-box !important;
+    border-radius: 6px !important;
+}
+
+.pg-contrast-toggle-btn:active {
+    transform: scale(0.98) !important;
+}
+
+/* high-contrast-customer-kiosk.css */
+
+/* ==========================================================================
+   ORDER CONFIRMED MODAL - FULL HIGH CONTRAST STYLE
+   ========================================================================== */
+
+/* 1. Set the dim modal overlay backdrop behind the card to solid dark black */
+.pg-kiosk.high-contrast .pg-receipt-overlay {
+    background-color: rgba(0, 0, 0, 0.95) !important;
+}
+
+/* 2. Change the main popup box from light pink to your uniform deep purple background */
+.pg-kiosk.high-contrast .pg-receipt-popup {
+    background-color: #120024 !important;
+    background: #120024 !important;
+    border: 4px solid #ffffff !important;
+    border-radius: 20px !important;
+    color: #ffffff !important;
+}
+
+/* 3. Force the main headers to be maximum bold white */
+.pg-kiosk.high-contrast #pg-receipt-title {
+    color: #ffffff !important;
+    font-weight: 950 !important;
+}
+
+/* 4. Format description subtexts to match the accessible high-contrast pink theme color */
+.pg-kiosk.high-contrast .pg-receipt-subtitle,
+.pg-kiosk.high-contrast .pg-receipt-summary {
+    color: #ffb3df !important;
+    font-weight: 800 !important;
+}
+
+/* 5. Style the central ticket box container to have a clean, explicit white border layout outline */
+.pg-kiosk.high-contrast .pg-receipt-number {
+    background-color: #1e003a !important;
+    /* Secondary panel deep purple color */
+    border: 3px solid #ffffff !important;
+    border-radius: 12px !important;
+}
+
+/* Ensure the big ticket string numbers stay clear bold white inside the container box */
+.pg-kiosk.high-contrast .pg-receipt-number span,
+.pg-kiosk.high-contrast .pg-receipt-number strong {
+    color: #ffffff !important;
+    font-weight: 950 !important;
+}
+
+/* 6. Clean up the bottom action button to use the uniform dark-purple text styling on a white tab layout */
+.pg-kiosk.high-contrast .pg-receipt-start {
+    background-color: #ffffff !important;
+    color: #120024 !important;
+    border: 3px solid #ffb3df !important;
+    font-weight: 950 !important;
+    font-size: 1.2rem !important;
+    border-radius: 8px !important;
+}

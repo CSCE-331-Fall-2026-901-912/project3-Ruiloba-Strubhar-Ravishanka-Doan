@@ -16,6 +16,9 @@ export default function App() {
   const [current, setCurrent] = useState("home");
   const mainContentRef = useRef(null);
 
+  // 1. Lifted High-Contrast Theme State Engine up to the top level
+  const [isHighContrast, setIsHighContrast] = useState(false);
+
   useEffect(() => {
     if (window.location.hash) {
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
@@ -34,8 +37,12 @@ export default function App() {
   return (
     <>
       <div className={`app app-${current}`}>
-        {/* Shared Persistent Header Bar */}
-        <Header current={current} onNavigate={setCurrent} />
+        {/* 2. Passed isHighContrast prop to the shared Persistent Header Bar */}
+        <Header 
+          current={current} 
+          onNavigate={setCurrent} 
+          isHighContrast={isHighContrast} 
+        />
 
         {/* Main Content Area Canvas Wrapper */}
         <main
@@ -46,7 +53,15 @@ export default function App() {
           role="main"
           aria-live="polite"
         >
-          {current === "home" ? <PortalPage onNavigate={setCurrent} /> : <Page />}
+          {current === "home" ? (
+            <PortalPage onNavigate={setCurrent} />
+          ) : (
+            /* 3. Render dynamically routed child components with state tracking functions hook */
+            <Page 
+              isHighContrast={isHighContrast} 
+              setIsHighContrast={setIsHighContrast} 
+            />
+          )}
         </main>
       </div>
       <PageMagnifier />
