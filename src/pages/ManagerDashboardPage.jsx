@@ -77,6 +77,10 @@ export default function ManagerDashboardPage() {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState("");
 
+  const [employees, setEmployees] = useState([]);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
+  const [employeesError, setEmployeesError] = useState("");
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const formCloseRef = useRef(null);
 
   const loadMenu = async () => {
@@ -96,8 +100,23 @@ export default function ManagerDashboardPage() {
 
   useEffect(() => {
     loadMenu();
+    loadEmployees();
   }, []);
 
+  const loadEmployees = async () => {
+    setEmployeesLoading(true);
+    setEmployeesError("");
+    try {
+      const response = await fetch("/api/employees");
+      if (!response.ok) throw new Error("Failed to load employees");
+      const data = await response.json();
+      setEmployees(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setEmployeesError(err.message || "Failed to load employees");
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
   useEffect(() => {
     if (showAdd || editingItem) {
       formCloseRef.current?.focus();
@@ -237,6 +256,17 @@ export default function ManagerDashboardPage() {
     );
   });
 
+  const filteredEmployees = employees.filter((employee) => {
+    const query = employeeSearch.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      String(employee.first_name || "").toLowerCase().includes(query) ||
+      String(employee.last_name || "").toLowerCase().includes(query) ||
+      String(employee.role || "").toLowerCase().includes(query) ||
+      String(employee.email || "").toLowerCase().includes(query) ||
+      String(employee.user_name || "").toLowerCase().includes(query)
+    );
+  });
   const salesByDay = reportData?.type === "sales-by-day" ? reportData.payload : [];
   const maxDayRevenue = Math.max(1, ...salesByDay.map((row) => Number(row.revenue) || 0));
 
@@ -338,10 +368,11 @@ export default function ManagerDashboardPage() {
       </div>
 
       <div style={{ display: "flex", gap: "8px", marginBottom: "24px", flexWrap: "wrap" }} role="tablist" aria-label="Dashboard sections">
-        {[
-          { value: "menu", label: "Menu Management" },
-          { value: "reports", label: "Reports" },
-        ].map((tab) => {
+          {[
+            { value: "menu", label: "Menu Management" },
+            { value: "reports", label: "Reports" },
+            { value: "employees", label: "Employees" },
+          ].map((tab) => {
           const selected = activeTab === tab.value;
           return (
             <button
@@ -420,6 +451,66 @@ export default function ManagerDashboardPage() {
                   {filteredMenu.length === 0 && (
                     <tr>
                       <td style={tdStyle} colSpan={7}>No menu items found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "employees" && (
+        <section role="tabpanel" aria-label="Employees section">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
+            <input
+              type="text"
+              placeholder="Search employees"
+              aria-label="Search employees"
+              value={employeeSearch}
+              onChange={(event) => setEmployeeSearch(event.target.value)}
+              style={{ ...inputStyle, maxWidth: "320px" }}
+            />
+            <button onClick={loadEmployees} style={buttonStyle(colors.mediumBlue, colors.white)}>
+              Refresh
+            </button>
+          </div>
+
+          {employeesError && (
+            <div style={{ color: "#b91c1c", marginBottom: "12px", fontWeight: "600" }} aria-live="assertive">{employeesError}</div>
+          )}
+
+          {employeesLoading ? (
+            <p style={{ color: "#4b5563" }}>Loading employees...</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>ID</th>
+                    <th style={thStyle}>First Name</th>
+                    <th style={thStyle}>Last Name</th>
+                    <th style={thStyle}>Role</th>
+                    <th style={thStyle}>Phone</th>
+                    <th style={thStyle}>Email</th>
+                    <th style={thStyle}>Username</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEmployees.map((employee) => (
+                    <tr key={employee.id}>
+                      <td style={tdStyle}>{employee.id}</td>
+                      <td style={tdStyle}>{employee.first_name}</td>
+                      <td style={tdStyle}>{employee.last_name}</td>
+                      <td style={tdStyle}>{employee.role}</td>
+                      <td style={tdStyle}>{employee.phone_number || "-"}</td>
+                      <td style={tdStyle}>{employee.email || "-"}</td>
+                      <td style={tdStyle}>{employee.user_name || "-"}</td>
+                    </tr>
+                  ))}
+                  {filteredEmployees.length === 0 && (
+                    <tr>
+                      <td style={tdStyle} colSpan={7}>No employees found.</td>
                     </tr>
                   )}
                 </tbody>

@@ -400,6 +400,17 @@ app.post('/api/kiosk/orders', async (req, res) => {
 });
 
 
+// GET API: List employees for the manager dashboard
+app.get(['/api/employees', '/api/employee', '/api/employees/list', '/api/staff'], async (_req, res) => {
+  try {
+    const result = await pool.query('SELECT id, first_name, last_name, role, phone_number, email, user_name FROM employees ORDER BY id ASC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Employees fetch failure:', err);
+    res.status(500).json({ error: 'Failed to retrieve employees' });
+  }
+});
+
 // Fallback static resource router pipeline layer
 app.use(express.static(buildDirectory));
 app.get(/.*/, (_request, response) => {
