@@ -8,7 +8,7 @@ import './customer-kiosk.css';
 import './high-contrast-customer-kiosk.css';
 
 // 1. Accepts 'isHighContrast' and 'setIsHighContrast' as shared incoming props instead of managing a duplicate local state
-export default function CustomerKioskPage({ isHighContrast, setIsHighContrast }) {
+export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, fontScale = 1 }) {
   const order = useKioskOrder();
   const [drinks, setDrinks] = useState([]);
   const [toppings, setToppings] = useState([]);
@@ -136,6 +136,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast })
               category={category}
               setCategory={setCategory}
               isHighContrast={isHighContrast}
+              fontScale={fontScale}
               onSelect={drink => {
                 setEditingItem(null);
                 setSelected(drink);

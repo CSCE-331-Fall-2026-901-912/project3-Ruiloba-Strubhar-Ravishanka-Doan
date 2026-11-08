@@ -3,9 +3,14 @@ import React from 'react';
 const money = value => `$${Number(value).toFixed(2)}`;
 
 // Added 'isHighContrast' prop to systematically adjust component state themes
-export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect, isHighContrast }) {
+export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect, isHighContrast, fontScale = 1 }) {
   const categories = ['All drinks', ...new Set(drinks.map(drink => drink.base_item_type).filter(Boolean))];
   const visible = category === 'All drinks' ? drinks : drinks.filter(drink => drink.base_item_type === category);
+  const drinkGridStyle = fontScale >= 1.3
+    ? { gridTemplateColumns: '1fr' }
+    : fontScale >= 1.1
+      ? { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : undefined;
 
   return <>
     <div className="pg-categories" role="group" aria-label="Drink categories">
@@ -27,7 +32,7 @@ export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect
         </button>
       ))}
     </div>
-    {visible.length === 0 ? <p role="status">No drinks in this category.</p> : <div className="pg-drinks">
+    {visible.length === 0 ? <p role="status">No drinks in this category.</p> : <div className="pg-drinks" style={drinkGridStyle}>
       {visible.map(drink => (
         <button
           key={drink.itemid}

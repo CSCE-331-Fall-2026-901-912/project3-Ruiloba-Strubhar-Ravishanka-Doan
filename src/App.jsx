@@ -5,6 +5,7 @@ import CustomerKioskPage from "./pages/CustomerKioskPage.jsx";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage.jsx";
 import PortalPage from "./pages/PortalPage.jsx";
 import PageMagnifier from "./components/PageMagnifier.jsx";
+import FontSizeControl from "./components/FontSizeControl.jsx";
 
 const pages = {
   manager: ManagerDashboardPage,
@@ -18,6 +19,16 @@ export default function App() {
 
   // 1. Lifted High-Contrast Theme State Engine up to the top level
   const [isHighContrast, setIsHighContrast] = useState(false);
+
+  // Font size scaling for impaired users
+  const [fontScale, setFontScale] = useState(() => {
+    const stored = Number(localStorage.getItem("fontScale"));
+    return Number.isFinite(stored) && stored > 0 ? stored : 1;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("fontScale", String(fontScale));
+  }, [fontScale]);
 
   useEffect(() => {
     if (window.location.hash) {
@@ -36,7 +47,7 @@ export default function App() {
 
   return (
     <>
-      <div className={`app app-${current}`}>
+      <div className={`app app-${current}`} style={{ zoom: String(fontScale) }}>
         {/* 2. Passed isHighContrast prop to the shared Persistent Header Bar */}
         <Header 
           current={current} 
@@ -57,14 +68,16 @@ export default function App() {
             <PortalPage onNavigate={setCurrent} />
           ) : (
             /* 3. Render dynamically routed child components with state tracking functions hook */
-            <Page 
-              isHighContrast={isHighContrast} 
-              setIsHighContrast={setIsHighContrast} 
+            <Page
+              isHighContrast={isHighContrast}
+              setIsHighContrast={setIsHighContrast}
+              fontScale={fontScale}
             />
           )}
         </main>
       </div>
       <PageMagnifier />
+      <FontSizeControl scale={fontScale} onScaleChange={setFontScale} />
     </>
   );
 }
