@@ -55,6 +55,8 @@ export default function PageMagnifier() {
 
     let pointerFrame = 0;
     let snapshotFrame = 0;
+    let touchActive = false;
+    let lastTouchTime = 0;
 
     const updateLens = () => {
       const { x, y } = pointerRef.current;
@@ -99,15 +101,36 @@ export default function PageMagnifier() {
     };
 
     const updatePointerMovement = (event) => {
-      if (event.pointerType !== "touch") {
-        updatePointer(event);
+      if (
+        event.pointerType === "touch" ||
+        touchActive ||
+        Date.now() - lastTouchTime < 800
+      ) {
+        return;
       }
+
+      updatePointer(event);
     };
 
     const updateTouchPointer = (event) => {
       if (event.pointerType === "touch") {
+        lastTouchTime = Date.now();
         updatePointer(event);
       }
+    };
+
+    const handleTouchStart = (event) => {
+      touchActive = true;
+      lastTouchTime = Date.now();
+      const touch = event.touches[0];
+      if (touch) {
+        updatePointer(touch);
+      }
+    };
+
+    const handleTouchEnd = (event) => {
+      touchActive = event.touches.length > 0;
+      lastTouchTime = Date.now();
     };
 
     const updateSnapshot = () => {
@@ -141,6 +164,9 @@ export default function PageMagnifier() {
 
     window.addEventListener("pointermove", updatePointerMovement);
     window.addEventListener("pointerdown", updateTouchPointer);
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     window.addEventListener("scroll", updateSnapshot, { capture: true, passive: true });
     window.addEventListener("input", updateSnapshot, true);
     window.addEventListener("resize", updateViewport);
@@ -151,6 +177,9 @@ export default function PageMagnifier() {
       observer.disconnect();
       window.removeEventListener("pointermove", updatePointerMovement);
       window.removeEventListener("pointerdown", updateTouchPointer);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
       window.removeEventListener("scroll", updateSnapshot, true);
       window.removeEventListener("input", updateSnapshot, true);
       window.removeEventListener("resize", updateViewport);
