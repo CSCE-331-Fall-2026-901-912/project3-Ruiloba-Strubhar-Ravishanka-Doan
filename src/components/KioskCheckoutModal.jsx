@@ -5,6 +5,7 @@ const money = amount => `$${Number(amount).toFixed(2)}`;
 export default function KioskCheckoutModal({ order, onClose, onConfirm, submitting }) {
   const [tipOption, setTipOption] = useState(0);
   const [customTip, setCustomTip] = useState('');
+  const [payType, setPayType] = useState('');
 
   const tip = tipOption === 'custom' ? Number(customTip || 0) : Math.round(order.subtotal * tipOption * 100) / 100;
   const valid = Number.isFinite(tip) && tip >= 0 && tip <= 1000;
@@ -53,7 +54,18 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
         >{key}</button>)}
       </div>
     </div>}
+    <fieldset className="pg-payment-fieldset" disabled={submitting}>
+      <legend>How would you like to pay?</legend>
+      <div className="pg-payment-options">
+        {[['mobile', '📱', 'Mobile'], ['cash', '💵', 'Cash'], ['card', '💳', 'Card']].map(([value, symbol, label]) => (
+          <button key={value} type="button" className={`pg-payment-choice ${payType === value ? 'selected' : ''}`}
+            aria-pressed={payType === value} onClick={() => setPayType(value)}>
+            <span aria-hidden="true">{symbol}</span><strong>{label}</strong>
+          </button>
+        ))}
+      </div>
+    </fieldset>
     <div className="pg-checkout-total"><span>Total</span><strong>{valid ? money(order.subtotal + order.tax + tip) : 'Invalid tip'}</strong></div>
-    <button type="button" className="pg-primary" disabled={!valid || submitting} onClick={() => onConfirm(Math.round(tip * 100) / 100)}>{submitting ? 'Saving order…' : 'Place order'}</button>
+    <button type="button" className="pg-primary" disabled={!valid || !payType || submitting} onClick={() => onConfirm(Math.round(tip * 100) / 100, payType)}>{submitting ? 'Saving order…' : 'Place order'}</button>
   </section></div>;
 }

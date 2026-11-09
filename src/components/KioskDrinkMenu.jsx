@@ -2,6 +2,31 @@ import React from 'react';
 
 const money = value => `$${Number(value).toFixed(2)}`;
 
+// Match the drink's liquid color to its flavor while keeping the Pearl Garden cup shape.
+const drinkColors = {
+  1: '#b98b60', 2: '#eee0c7', 3: '#e7b73c', 4: '#b8a477',
+  5: '#70452f', 6: '#d8b56c', 7: '#b5a578', 8: '#efae32',
+  9: '#d77e94', 10: '#b74f7d', 11: '#f5a46d', 12: '#e87e9c',
+  13: '#7b635a', 14: '#aa8ac8', 15: '#9d5963', 16: '#65504d',
+  17: '#a54d70', 18: '#a77445', 26: '#f1b24e', 27: '#e69c48',
+  28: '#8e5b40', 29: '#e5a73f'
+};
+function DrinkCup({ drink }) {
+  const color = drinkColors[Number(drink.itemid)] || '#c49bd0';
+  return <svg className="pg-colored-cup" viewBox="0 0 70 110" width="62" height="105" aria-hidden="true" focusable="false">
+    <path d="M13 27 H57 L52 98 Q35 104 18 98 Z" fill="#fff9fc" stroke="#765c81" strokeWidth="2.5" />
+    <path d="M17 39 H53 L49 94 Q35 99 21 94 Z" fill={color} />
+    <path d="M13 27 H57 L52 98 Q35 104 18 98 Z" fill="none" stroke="#765c81" strokeWidth="2.5" />
+    <path d="M9 25 Q35 19 61 25 L60 31 H10 Z" fill="#f5dceb" stroke="#765c81" strokeWidth="2" />
+    <path d="M38 25 L44 5" stroke="#765c81" strokeWidth="4" strokeLinecap="round" />
+    <path d="M24 46 L22 85" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" opacity=".35" />
+    <circle cx="28" cy="88" r="4" fill="#49334b" opacity=".75" />
+    <circle cx="38" cy="91" r="4" fill="#49334b" opacity=".75" />
+    <circle cx="45" cy="86" r="4" fill="#49334b" opacity=".75" />
+    <path d="M29 62 Q35 56 41 62 Q35 69 29 62" fill="#fff9fc" opacity=".85" />
+  </svg>;
+}
+
 // Added 'isHighContrast' prop to systematically adjust component state themes
 export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect, isHighContrast, fontScale = 1 }) {
   const categories = ['All drinks', ...new Set(drinks.map(drink => drink.base_item_type).filter(Boolean))];
@@ -46,7 +71,7 @@ export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect
           onClick={() => onSelect(drink)}
           aria-label={`${drink.item_name}, ${drink.item_cal != null ? `${drink.item_cal} calories` : 'Freshly made'}, price ${money(drink.item_cost)}`}
         >
-          <img src="/pearl-garden-cup.png" alt="" loading="lazy" />
+          <DrinkCup drink={drink} />
           <span className="pg-drink-copy">
             <strong style={isHighContrast ? { color: '#ffffff', fontWeight: '900' } : {}}>{drink.item_name}</strong>
             <small style={isHighContrast ? { color: '#ffffff', textDecoration: 'underline', fontWeight: '700' } : {}}>

@@ -15,7 +15,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
   const [category, setCategory] = useState('All drinks');
   const [selected, setSelected] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
-  const [weather, setWeather] = useState({ text: 'A lovely day for boba!', icon: '🧋' });
+  const [weather, setWeather] = useState({ text: 'A lovely day for boba!', icon: '🧋', kind: 'mild' });
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,23 +43,46 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
 
   useEffect(() => {
     const controller = new AbortController();
-    async function loadWeather() {
+    const loadWeather = async (latitude, longitude) => {
       try {
-        const response = await fetch('https://open-meteo.com', { signal: controller.signal });
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=auto`;
+        const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) throw new Error('Weather unavailable');
         const { current } = await response.json();
-        const code = current.weather_code, temp = current.temperature_2m;
-        const result = [95, 96, 99].includes(code) ? { text: 'Stormy skies? Cozy up with milk tea!', icon: '⛈️' } : [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code) ? { text: 'Rainy day? Milk tea sounds lovely!', icon: '🌧️' } : temp >= 85 ? { text: 'Hot outside? Try an i⌴y fruit tea!', icon: '☀️' } : temp <= 55 ? { text: 'Chilly day? Warm up with milk tea!', icon: '☕' } : [2, 3, 45, 48].includes(code) ? { text: 'Cloudy skies, sweet sips!', icon: '☁️' } : { text: 'Lovely weather for a little boba!', icon: '🧋' };
-        setWeather(result);
+        if (!current || !Number.isFinite(current.temperature_2m)) throw new Error('Invalid weather data');
+        const code = current.weather_code;
+        const temp = current.temperature_2m;
+        const rainy = [51,53,55,61,63,65,80,81,82,95,96,99].includes(code);
+        const kind = rainy ? 'rainy' : temp >= 85 ? 'hot' : temp <= 55 ? 'cold' : 'mild';
+        const icons = { rainy: '🌧️', hot: '☀️', cold: '☕', mild: '🌤️' };
+        setWeather({ text: `${Math.round(temp)}°F outside`, icon: icons[kind], kind });
       } catch (error) {
-        if (error.name !== 'AbortError') setWeather({ text: 'A lovely day for boba!', icon: '🧋' });
+        if (error.name !== 'AbortError') setWeather({ text: 'A lovely day for boba!', icon: '🧋', kind: 'mild' });
       }
-    }
-    loadWeather();
+    };
+    // Use the kiosk's local area by default; browser location can refine the recommendation.
+    const fallback = () => loadWeather(30.62798, -96.33441);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => loadWeather(pos.coords.latitude, pos.coords.longitude),
+        fallback,
+        { timeout: 4000, maximumAge: 600000 }
+      );
+    } else fallback();
     return () => controller.abort();
   }, []);
 
-  async function submitOrder(tip) {
+  const recommendations = {
+    hot: ['Mango Green Tea', 'Passion Fruit Green Tea', 'Rosehip Lemonade'],
+    cold: ['Hot Chocolate', 'Kung Fu Milk Tea', 'Earl Grey Black Tea'],
+    rainy: ['Kung Fu Milk Tea', 'Coconut Milk Tea', 'Hot Chocolate'],
+    mild: ['Berry Lemonade', 'Mango Cream', 'Taro Slush'],
+  };
+  const recommendedDrink = (recommendations[weather.kind] || recommendations.mild)
+    .map(name => drinks.find(drink => drink.item_name?.toLowerCase() === name.toLowerCase()))
+    .find(Boolean) || drinks[0];
+
+  async function submitOrder(tip, payType) {
     if (submitting) return;
     setSubmitting(true);
     setError('');
@@ -67,7 +90,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
       const response = await fetch('/api/kiosk/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tip, items: order.items.map(item => ({ drinkId: item.drinkId, toppingIds: item.toppingIds, size: item.size, quantity: item.quantity })) }),
+        body: JSON.stringify({ tip, payType, items: order.items.map(item => ({ drinkId: item.drinkId, toppingIds: item.toppingIds, size: item.size, quantity: item.quantity })) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save order');
@@ -97,6 +120,14 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         <div className="pg-weather">
           <span style={isHighContrast ? { color: '#ffffff', fontWeight: '700' } : {}}>{weather.text}</span>
           <span className="pg-cloud" aria-hidden="true">{weather.icon}</span>
+          {recommendedDrink && (
+            <button type="button" className="pg-weather-recommend" onClick={() => {
+              setEditingItem(null);
+              setSelected(recommendedDrink);
+            }} aria-label={`Customize recommended drink ${recommendedDrink.item_name}`}>
+              Try {recommendedDrink.item_name} <span aria-hidden="true">♡</span>
+            </button>
+          )}
         </div>
       </header>
 

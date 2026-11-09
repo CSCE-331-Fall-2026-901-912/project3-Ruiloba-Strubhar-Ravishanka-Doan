@@ -63,11 +63,18 @@ app.get(['/api/menu', '/api/kiosk/menu'], async (req, res) => {
 
 // POST API: Finalizes item orders inside a safe transaction boundary
 app.post('/api/orders', async (req, res) => {
-  const { items, subtotal, tax, tip, total } = req.body;
+  const { items, subtotal, tax, tip, total, payType } = req.body;
+  if (!["mobile", "cash", "card"].includes(payType)) {
+    return res.status(400).json({ error: "Please select Mobile, Cash, or Card." });
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "Please add a drink." });
+  }
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [3312026]);
 
     // Generate the next incremental order identity signature securely
     const idResult = await client.query('SELECT MAX(orderid) FROM order_history');
@@ -79,7 +86,7 @@ app.post('/api/orders', async (req, res) => {
     const currentTime = new Date();
     const serverName = "Cashier Portal";
     const fallbackPhone = "000-000-0000";
-    const fallbackPayType = "counter";
+    
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -96,7 +103,7 @@ app.post('/api/orders', async (req, res) => {
         newOrderId,
         parseFloat((item.item_cost * item.quantity).toFixed(2)),
         fallbackPhone,
-        fallbackPayType,
+        payType,
         currentTime,
         item.drink_name || item.item_name,
         (Array.isArray(item.toppings) ? item.toppings : (Array.isArray(item.topping) ? item.topping : [item.topping])).filter(Boolean).join(', ') || 'None',
@@ -347,7 +354,8 @@ app.get('/api/reports/inventory', async (_req, res) => {
 
 // Customer kiosk checkout (separate from the cashier endpoint)
 app.post('/api/kiosk/orders', async (req, res) => {
-  const { items, tip = 0 } = req.body || {};
+  const { items, tip = 0, payType } = req.body || {};
+  if (!['mobile', 'cash', 'card'].includes(payType)) return res.status(400).json({ error: 'Please select Mobile, Cash, or Card.' });
   if (!Array.isArray(items) || items.length === 0 || items.length > 100) return res.status(400).json({ error: 'Please add a drink.' });
   const tipCents = Math.round(Number(tip) * 100);
   if (!Number.isSafeInteger(tipCents) || tipCents < 0 || tipCents > 100000) return res.status(400).json({ error: 'Invalid tip.' });
@@ -388,7 +396,7 @@ app.post('/api/kiosk/orders', async (req, res) => {
       const line = lines[i], last = i === lines.length - 1;
       await client.query(`INSERT INTO order_history (orderid, item_cost_subtotal, phone_number, pay_type, time, drink_name, topping, item_quantity, item_size, tips, tax, total, server)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-        [orderId, line.lineSubtotal, '000-000-0000', 'kiosk', new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents/100 : null, last ? taxCents/100 : null, last ? totalCents/100 : null, 'customer-kiosk']);
+        [orderId, line.lineSubtotal, '000-000-0000', payType, new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents/100 : null, last ? taxCents/100 : null, last ? totalCents/100 : null, 'customer-kiosk']);
     }
     await client.query('COMMIT');
     res.status(201).json({ success: true, orderId, items: lines, subtotal: subtotalCents/100, tax: taxCents/100, tip: tipCents/100, total: totalCents/100 });

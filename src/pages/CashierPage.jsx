@@ -38,6 +38,8 @@ export default function CashierPage() {
   const [message, setMessage] = useState("");
   const [activeCustomization, setActiveCustomization] = useState(null);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [payType, setPayType] = useState("");
+  const [placingOrder, setPlacingOrder] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
   // Custom Customization Option Flags
@@ -191,7 +193,8 @@ export default function CashierPage() {
 
   // 3. Finalize Order & Process Database Pipeline Execution 
   const handleCheckout = async () => {
-    if (order.items.length === 0) return;
+    if (order.items.length === 0 || !payType || placingOrder) return;
+    setPlacingOrder(true);
 
     try {
       const response = await fetch("/api/orders", {
@@ -203,12 +206,14 @@ export default function CashierPage() {
           tax: order.tax,
           tip: order.tip,
           total: order.total,
+          payType,
         }),
       });
 
       if (response.ok) {
         setMessage(`Order placed successfully! ${order.count} ${order.count === 1 ? "drink is" : "drinks are"} on the way.`);
         order.clear();
+        setPayType("");
 
         // Scroll the entire window/page back to the top cleanly
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -218,6 +223,8 @@ export default function CashierPage() {
     } catch (err) {
       console.error(err);
       alert("Network exception encountered clearing payment routing.");
+    } finally {
+      setPlacingOrder(false);
     }
   };
 
@@ -681,8 +688,22 @@ export default function CashierPage() {
             </div>
           </div>
 
-          <button onClick={handleCheckout} disabled={order.items.length === 0} style={{ width: "100%", padding: "14px", background: order.items.length === 0 ? "#cbd5e1" : colors.darkerBlue, color: colors.white, border: "none", borderRadius: "12px", fontSize: "16px", fontWeight: "600", cursor: order.items.length === 0 ? "not-allowed" : "pointer" }}>
-            Place Customer Order
+          <fieldset className="cashier-payment-options" style={{ border: "none", padding: 0, margin: "0 0 16px" }}>
+            <legend style={{ fontWeight: 700, fontSize: "15px", marginBottom: "10px" }}>Payment method</legend>
+            <div role="group" aria-label="Select payment method" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
+              {[["mobile", "📱", "Mobile"], ["cash", "💵", "Cash"], ["card", "💳", "Card"]].map(([value, symbol, label]) => (
+                <button key={value} type="button" disabled={placingOrder} aria-pressed={payType === value}
+                  onClick={() => setPayType(value)}
+                  style={{ padding: "12px 4px", borderRadius: "12px", border: payType === value ? `2px solid ${colors.purpleDark}` : `1px solid ${colors.grayBorder}`, background: payType === value ? colors.purple : colors.white, color: colors.purpleDark, fontWeight: 700, cursor: "pointer" }}>
+                  <span aria-hidden="true">{symbol}</span> {label}
+                </button>
+              ))}
+            </div>
+            {!payType && <small style={{ display: "block", marginTop: "8px", color: "#6b21a8" }}>Select a payment method to place the order.</small>}
+          </fieldset>
+
+          <button onClick={handleCheckout} disabled={order.items.length === 0 || !payType || placingOrder} style={{ width: "100%", padding: "14px", background: (order.items.length === 0 || !payType || placingOrder) ? "#cbd5e1" : colors.darkerBlue, color: colors.white, border: "none", borderRadius: "12px", fontSize: "16px", fontWeight: "600", cursor: order.items.length === 0 ? "not-allowed" : "pointer" }}>
+            {placingOrder ? "Saving order…" : "Place Customer Order"}
           </button>
         </section>
       </div>
