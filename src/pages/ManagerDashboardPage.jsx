@@ -814,50 +814,70 @@ export default function ManagerDashboardPage() {
                 ×
               </button>
             </div>
-            <input
-              type="text"
-              placeholder="Item name"
-              aria-label="Item name"
-              value={form.item_name}
-              onChange={(event) => setForm({ ...form, item_name: event.target.value })}
-              style={inputStyle}
-              required
-            />
-            <input
-              type="number"
-              placeholder="Calories"
-              aria-label="Calories"
-              value={form.item_cal}
-              onChange={(event) => setForm({ ...form, item_cal: event.target.value })}
-              style={inputStyle}
-            />
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Price"
-              aria-label="Price"
-              value={form.item_cost}
-              onChange={(event) => setForm({ ...form, item_cost: event.target.value })}
-              style={inputStyle}
-            />
-            <select
-              value={form.item_category}
-              aria-label="Category"
-              onChange={(event) => setForm({ ...form, item_category: event.target.value })}
-              style={inputStyle}
-            >
-              <option value="base_drink">base_drink</option>
-              <option value="seasonal_drink">seasonal_drink</option>
-              <option value="topping">topping</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Base item type (optional)"
-              aria-label="Base item type"
-              value={form.base_item_type}
-              onChange={(event) => setForm({ ...form, base_item_type: event.target.value })}
-              style={inputStyle}
-            />
+            <div>
+              <label htmlFor="menu-item-name" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Item name</label>
+              <input
+                id="menu-item-name"
+                type="text"
+                placeholder="Item name"
+                aria-label="Item name"
+                value={form.item_name}
+                onChange={(event) => setForm({ ...form, item_name: event.target.value })}
+                style={inputStyle}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="menu-item-calories" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Calories</label>
+              <input
+                id="menu-item-calories"
+                type="number"
+                placeholder="Calories"
+                aria-label="Calories"
+                value={form.item_cal}
+                onChange={(event) => setForm({ ...form, item_cal: event.target.value })}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label htmlFor="menu-item-price" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Price</label>
+              <input
+                id="menu-item-price"
+                type="number"
+                step="0.01"
+                placeholder="Price"
+                aria-label="Price"
+                value={form.item_cost}
+                onChange={(event) => setForm({ ...form, item_cost: event.target.value })}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label htmlFor="menu-item-category" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Category</label>
+              <select
+                id="menu-item-category"
+                value={form.item_category}
+                aria-label="Category"
+                onChange={(event) => setForm({ ...form, item_category: event.target.value })}
+                style={inputStyle}
+              >
+                <option value="base_drink">base_drink</option>
+                <option value="seasonal_drink">seasonal_drink</option>
+                <option value="topping">topping</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="menu-item-base-type" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Base item type</label>
+              <input
+                id="menu-item-base-type"
+                type="text"
+                placeholder="Base item type (optional)"
+                aria-label="Base item type"
+                value={form.base_item_type}
+                onChange={(event) => setForm({ ...form, base_item_type: event.target.value })}
+                style={inputStyle}
+              />
+            </div>
             {menuError && <div style={{ color: "#b91c1c", fontWeight: "600" }} aria-live="assertive">{menuError}</div>}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
               <button type="button" onClick={resetForm} style={buttonStyle(colors.grayBg, colors.black, `1px solid ${colors.grayBorder}`)}>
