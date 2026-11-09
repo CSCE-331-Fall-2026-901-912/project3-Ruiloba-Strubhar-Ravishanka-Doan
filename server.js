@@ -232,23 +232,27 @@ app.get('/api/reports/sales-summary', async (req, res) => {
 // GET API: Sales by day report (for visualization)
 app.get('/api/reports/sales-by-day', async (req, res) => {
   const { start, end } = reportDateRange(req);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) ||
+      start > end || !Number.isFinite(Date.parse(start)) || !Number.isFinite(Date.parse(end))) {
+    return res.status(400).json({ error: 'Please choose a valid date range.' });
+  }
   try {
     const result = await pool.query(
-      `SELECT time::date AS day,
-              COUNT(DISTINCT orderid) AS orders,
-              COALESCE(SUM(total) FILTER (WHERE total IS NOT NULL), 0) AS revenue,
-              COALESCE(SUM(item_cost_subtotal), 0) AS item_revenue
-       FROM order_history
-       WHERE time::date BETWEEN $1::date AND $2::date
-       GROUP BY time::date
-       ORDER BY day`,
+      `SELECT TO_CHAR(days.day, 'YYYY-MM-DD') AS date,
+              COUNT(DISTINCT orders.orderid) AS orders,
+              COALESCE(SUM(orders.total), 0) AS revenue,
+              COALESCE(SUM(orders.item_cost_subtotal), 0) AS item_revenue
+       FROM generate_series($1::date, $2::date, INTERVAL '1 day') AS days(day)
+       LEFT JOIN order_history orders ON orders.time::date = days.day::date
+       GROUP BY days.day
+       ORDER BY days.day`,
       [start, end]
     );
-    res.json(result.rows.map(r => ({
-      date: r.day,
-      orders: Number(r.orders) || 0,
-      revenue: Number(r.revenue) || 0,
-      itemRevenue: Number(r.item_revenue) || 0,
+    res.json(result.rows.map(row => ({
+      date: row.date,
+      orders: Number(row.orders) || 0,
+      revenue: Number(row.revenue) || 0,
+      itemRevenue: Number(row.item_revenue) || 0,
     })));
   } catch (err) {
     console.error('Sales by day failure:', err);

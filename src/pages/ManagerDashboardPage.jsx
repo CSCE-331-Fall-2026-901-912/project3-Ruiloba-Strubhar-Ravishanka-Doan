@@ -226,6 +226,9 @@ export default function ManagerDashboardPage() {
     setReportData(null);
     const option = reportOptions.find((item) => item.value === reportType);
     try {
+      if (reportType !== "inventory" && (!startDate || !endDate || startDate > endDate)) {
+        throw new Error("Please select a valid date range (start date must be before or equal to end date).");
+      }
       const params = new URLSearchParams();
       if (reportType !== "inventory") {
         params.set("start", startDate);
@@ -269,6 +272,7 @@ export default function ManagerDashboardPage() {
   });
   const salesByDay = reportData?.type === "sales-by-day" ? reportData.payload : [];
   const maxDayRevenue = Math.max(1, ...salesByDay.map((row) => Number(row.revenue) || 0));
+  const daysWithoutOrders = salesByDay.filter((row) => Number(row.orders) === 0).length;
 
   const topItems = reportData?.type === "top-items" ? reportData.payload : [];
   const maxTopQuantity = Math.max(1, ...topItems.map((row) => Number(row.quantity) || 0));
@@ -585,51 +589,48 @@ export default function ManagerDashboardPage() {
 
           {!reportLoading && !reportError && reportData?.type === "sales-by-day" && (
             <div>
+              <p role="status" style={{ padding: "12px 16px", background: colors.purple, color: colors.purpleDark, borderRadius: "10px", fontSize: "13px", fontWeight: "600", marginBottom: "18px" }}>
+                {salesByDay.length === 0
+                  ? "No dates found in this range."
+                  : daysWithoutOrders === 0
+                    ? `Orders were recorded on all ${salesByDay.length} days in this range.`
+                    : `${daysWithoutOrders} of ${salesByDay.length} days had no orders. Those dates are shown below with $0.00 revenue.`}
+              </p>
               <div style={{ marginBottom: "20px" }}>
                 <p style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "700", color: colors.black }}>Revenue by Day</p>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "180px", padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
-                  {salesByDay.map((row, index) => (
-                    <div key={index} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", minWidth: 0 }}>
-                      <div
-                        style={{
-                          width: "100%",
-                          height: `${Math.max(4, (Number(row.revenue) / maxDayRevenue) * 160)}px`,
-                          background: index === salesByDay.length - 1 ? colors.purpleDark : colors.purple,
-                          borderRadius: "6px 6px 0 0",
-                        }}
-                        title={`${row.date}: ${money(row.revenue)}`}
-                      />
-                      <small style={{ fontSize: "9px", color: "#6b7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
-                        {String(row.date).slice(5, 10)}
-                      </small>
-                    </div>
-                  ))}
+                <div role="region" aria-label="Scrollable daily revenue chart" tabIndex={0} style={{ overflowX: "auto", paddingBottom: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "180px", minWidth: `${Math.max(0, salesByDay.length * 48)}px`, padding: "8px 0", borderBottom: `1px solid ${colors.grayBorder}` }}>
+                    {salesByDay.map((row) => (
+                      <div key={row.date} style={{ flex: "1 0 42px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", minWidth: "42px" }}>
+                        <div
+                          style={{ width: "100%", height: `${Number(row.revenue) > 0 ? Math.max(4, (Number(row.revenue) / maxDayRevenue) * 150) : 0}px`, background: Number(row.orders) === 0 ? colors.grayBorder : colors.purpleDark, borderRadius: "6px 6px 0 0" }}
+                          title={`${row.date}: ${row.orders} orders, ${money(row.revenue)}`}
+                        />
+                        <small style={{ fontSize: "10px", color: "#4b5563", whiteSpace: "nowrap" }}>{String(row.date).slice(5, 10)}</small>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={tableStyle}>
+              <div role="region" aria-label="Scrollable daily sales report" tabIndex={0} style={{ overflow: "auto", maxHeight: "420px", border: `1px solid ${colors.grayBorder}`, borderRadius: "12px" }}>
+                <table style={{ ...tableStyle, border: "none", borderRadius: 0 }}>
                   <thead>
                     <tr>
-                      <th style={thStyle}>Date</th>
-                      <th style={thStyle}>Orders</th>
-                      <th style={thStyle}>Revenue</th>
-                      <th style={thStyle}>Item Revenue</th>
+                      {['Date', 'Orders', 'Revenue', 'Item Revenue'].map((heading) => (
+                        <th key={heading} scope="col" style={{ ...thStyle, position: "sticky", top: 0, zIndex: 1 }}>{heading}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {salesByDay.map((row, index) => (
-                      <tr key={index}>
+                    {salesByDay.map((row) => (
+                      <tr key={row.date} style={Number(row.orders) === 0 ? { background: "#faf5ff" } : {}}>
                         <td style={tdStyle}>{String(row.date).slice(0, 10)}</td>
-                        <td style={tdStyle}>{row.orders}</td>
+                        <td style={tdStyle}>{Number(row.orders) === 0 ? <span style={{ color: colors.purpleDark, fontWeight: "700" }}>0 · No orders</span> : row.orders}</td>
                         <td style={tdStyle}>{money(row.revenue)}</td>
                         <td style={tdStyle}>{money(row.itemRevenue)}</td>
                       </tr>
                     ))}
-                    {salesByDay.length === 0 && (
-                      <tr>
-                        <td style={tdStyle} colSpan={4}>No sales data for this range.</td>
-                      </tr>
-                    )}
+                    {salesByDay.length === 0 && <tr><td style={tdStyle} colSpan={4}>No dates found for this range.</td></tr>}
                   </tbody>
                 </table>
               </div>
