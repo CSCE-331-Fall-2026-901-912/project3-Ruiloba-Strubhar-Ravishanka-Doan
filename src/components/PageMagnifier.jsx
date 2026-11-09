@@ -98,6 +98,12 @@ export default function PageMagnifier() {
       }
     };
 
+    const updateTouchPointer = (event) => {
+      if (event.pointerType === "touch") {
+        updatePointer(event);
+      }
+    };
+
     const updateSnapshot = () => {
       if (snapshotFrame) {
         return;
@@ -128,6 +134,7 @@ export default function PageMagnifier() {
     });
 
     window.addEventListener("pointermove", updatePointer);
+    window.addEventListener("pointerdown", updateTouchPointer);
     window.addEventListener("scroll", updateSnapshot, { capture: true, passive: true });
     window.addEventListener("input", updateSnapshot, true);
     window.addEventListener("resize", updateViewport);
@@ -137,6 +144,7 @@ export default function PageMagnifier() {
     return () => {
       observer.disconnect();
       window.removeEventListener("pointermove", updatePointer);
+      window.removeEventListener("pointerdown", updateTouchPointer);
       window.removeEventListener("scroll", updateSnapshot, true);
       window.removeEventListener("input", updateSnapshot, true);
       window.removeEventListener("resize", updateViewport);
