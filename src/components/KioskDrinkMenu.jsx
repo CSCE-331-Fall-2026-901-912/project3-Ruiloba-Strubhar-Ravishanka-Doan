@@ -57,7 +57,7 @@ export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect
         </button>
       ))}
     </div>
-    {visible.length === 0 ? <p role="status">No drinks in this category.</p> : <div className="pg-drinks" style={drinkGridStyle}>
+    {visible.length === 0 ? <p role="status">No drinks in this category.</p> : <div className={fontScale > 1 ? 'pg-drinks pg-drinks--zoomed' : 'pg-drinks'} style={drinkGridStyle}>
       {visible.map(drink => (
         <button
           key={drink.itemid}

@@ -710,8 +710,8 @@ export default function CashierPage() {
 
       {/* POPUP MODAL A: COMPONENT & DIMENSIONS CUSTOMIZATION ENGINE WITH FOCUS TRAP */}
       {activeCustomization && (
-        <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" }}>
-          <div ref={customModalRef} className="modal-content" role="dialog" aria-modal="true" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "360px", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
+        <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)", overflow: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div ref={customModalRef} className="modal-content" role="dialog" aria-modal="true" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "min(360px, 92vw)", maxHeight: "90vh", overflowY: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
             <h3 style={{ margin: "0 0 20px 0", fontSize: "18px", fontWeight: "700" }}>
               {editingIndex !== null ? `Edit: ${activeCustomization.item_name}` : `Customize: ${activeCustomization.item_name}`}
             </h3>
@@ -726,7 +726,7 @@ export default function CashierPage() {
 
             <div style={{ marginBottom: "24px" }}>
               <span id="toppings-label" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Select Toppings</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", padding: "12px" }} role="group" aria-labelledby="toppings-label">
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y", border: `1px solid ${colors.grayBorder}`, borderRadius: "10px", padding: "12px" }} role="group" aria-labelledby="toppings-label">
                 {toppingsList.map((top) => (
                   <label key={top.itemid || Math.random()} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
                     <input type="checkbox" checked={selectedToppings.includes(top.item_name)} onChange={() => handleToggleToppingSelection(top.item_name)} />
@@ -789,8 +789,8 @@ export default function CashierPage() {
 
       {/* POPUP MODAL B: TIP INTERFACE SETTINGS WITH FOCUS TRAP */}
       {showTipModal && (
-        <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)" }}>
-          <div ref={tipModalRef} className="modal-content" role="dialog" aria-modal="true" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "360px", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
+        <div className="modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(4px)", overflow: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div ref={tipModalRef} className="modal-content" role="dialog" aria-modal="true" style={{ background: colors.white, padding: "24px", borderRadius: "16px", width: "min(360px, 92vw)", maxHeight: "90vh", overflowY: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y", boxShadow: "0px 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${colors.grayBorder}` }}>
             <h3 style={{ margin: "0 0 16px 0", fontSize: "18px", fontWeight: "700" }}>Select Tip Amount</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "20px" }}>
               {[0.05, 0.10, 0.15, 0.20].map((rate) => (
