@@ -19,6 +19,16 @@ function syncPageSnapshot(pageRoot, content) {
   const clonedNodes = [clone, ...clone.querySelectorAll("*")];
   originalNodes.forEach((element, index) => {
     const clonedElement = clonedNodes[index];
+    if (window.getComputedStyle(element).position === "fixed") {
+      const bounds = element.getBoundingClientRect();
+      clonedElement.style.position = "absolute";
+      clonedElement.style.inset = "auto";
+      clonedElement.style.left = `${bounds.left + window.scrollX}px`;
+      clonedElement.style.top = `${bounds.top + window.scrollY}px`;
+      clonedElement.style.width = `${bounds.width}px`;
+      clonedElement.style.height = `${bounds.height}px`;
+    }
+
     if (element instanceof HTMLInputElement && clonedElement instanceof HTMLInputElement) {
       clonedElement.value = element.value;
       clonedElement.checked = element.checked;
