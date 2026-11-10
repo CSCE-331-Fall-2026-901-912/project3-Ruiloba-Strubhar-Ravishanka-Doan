@@ -49,37 +49,44 @@ export default function PageMagnifier() {
     const pageRoot = document.querySelector(".app");
     const lens = lensRef.current;
     const content = contentRef.current;
+    const coarsePointer = window.matchMedia("(pointer: coarse)");
     if (!pageRoot || !lens || !content) {
       return undefined;
     }
 
     let pointerFrame = 0;
     let snapshotFrame = 0;
-    let touchActive = false;
-    let lastTouchTime = 0;
 
     const updateLens = () => {
       const { x, y } = pointerRef.current;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      lens.style.width = `${Math.max(
+      const lensWidth = Math.max(
         1,
         Math.min(LENS_WIDTH, viewportWidth - EDGE_PADDING * 2),
-      )}px`;
-      lens.style.height = `${Math.max(
+      );
+      const lensHeight = Math.max(
         1,
-        Math.min(LENS_HEIGHT, viewportHeight - EDGE_PADDING * 2),
-      )}px`;
+        Math.min(
+          coarsePointer.matches ? 180 : LENS_HEIGHT,
+          viewportHeight - EDGE_PADDING * 2,
+        ),
+      );
+      lens.style.width = `${lensWidth}px`;
+      lens.style.height = `${lensHeight}px`;
 
-      const lensBounds = lens.getBoundingClientRect();
-      const lensLeft = Math.max(
-        EDGE_PADDING,
-        Math.min(x + 20, viewportWidth - lensBounds.width - EDGE_PADDING),
-      );
-      const lensTop = Math.max(
-        EDGE_PADDING,
-        Math.min(y + 20, viewportHeight - lensBounds.height - EDGE_PADDING),
-      );
+      const lensLeft = coarsePointer.matches
+        ? (viewportWidth - lensWidth) / 2
+        : Math.max(
+            EDGE_PADDING,
+            Math.min(x + 20, viewportWidth - lensWidth - EDGE_PADDING),
+          );
+      const lensTop = coarsePointer.matches
+        ? EDGE_PADDING
+        : Math.max(
+            EDGE_PADDING,
+            Math.min(y + 20, viewportHeight - lensHeight - EDGE_PADDING),
+          );
 
       lens.style.left = `${lensLeft}px`;
       lens.style.top = `${lensTop}px`;
@@ -101,11 +108,7 @@ export default function PageMagnifier() {
     };
 
     const updatePointerMovement = (event) => {
-      if (
-        event.pointerType === "touch" ||
-        touchActive ||
-        Date.now() - lastTouchTime < 800
-      ) {
+      if (coarsePointer.matches || event.pointerType === "touch") {
         return;
       }
 
@@ -113,24 +116,20 @@ export default function PageMagnifier() {
     };
 
     const updateTouchPointer = (event) => {
-      if (event.pointerType === "touch") {
-        lastTouchTime = Date.now();
+      if (coarsePointer.matches && event.pointerType === "touch") {
         updatePointer(event);
       }
     };
 
     const handleTouchStart = (event) => {
-      touchActive = true;
-      lastTouchTime = Date.now();
+      if (!coarsePointer.matches) {
+        return;
+      }
+
       const touch = event.touches[0];
       if (touch) {
         updatePointer(touch);
       }
-    };
-
-    const handleTouchEnd = (event) => {
-      touchActive = event.touches.length > 0;
-      lastTouchTime = Date.now();
     };
 
     const updateSnapshot = () => {
@@ -165,8 +164,6 @@ export default function PageMagnifier() {
     window.addEventListener("pointermove", updatePointerMovement);
     window.addEventListener("pointerdown", updateTouchPointer);
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
-    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     window.addEventListener("scroll", updateSnapshot, { capture: true, passive: true });
     window.addEventListener("input", updateSnapshot, true);
     window.addEventListener("resize", updateViewport);
@@ -178,8 +175,6 @@ export default function PageMagnifier() {
       window.removeEventListener("pointermove", updatePointerMovement);
       window.removeEventListener("pointerdown", updateTouchPointer);
       window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchend", handleTouchEnd);
-      window.removeEventListener("touchcancel", handleTouchEnd);
       window.removeEventListener("scroll", updateSnapshot, true);
       window.removeEventListener("input", updateSnapshot, true);
       window.removeEventListener("resize", updateViewport);
