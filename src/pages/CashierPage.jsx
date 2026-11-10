@@ -11,7 +11,7 @@ const getDrinkEmoji = (name) => {
   if (lower.includes('milk strike') || lower.includes('milk')) return "🥛";
   if (lower.includes('brown sugar') || lower.includes('classic')) return "🧋";
   if (lower.includes('strawberry') || lower.includes('berry')) return "🍓";
-  if (lower.includes('matcha')) return "🫖";
+  if (lower.includes('matcha')) return "𫁖";
   if (lower.includes('taro')) return "🍠";
   if (lower.includes('mango')) return "🥭";
   if (lower.includes('peach')) return "🍑";
@@ -183,9 +183,9 @@ export default function CashierPage() {
     }
 
     if (sortFilter === "Alphabetical") {
-      output.sort((a, b) => String(a.item_name || '').localeCompare(String(b.item_name || '')));
+      output.sort((a, b) => String(a.item_name || '').localeCompare(String(b.item_name || ''), undefined, { sensitivity: 'base' }));
     } else if (sortFilter === "Reverse Alphabetical") {
-      output.sort((a, b) => String(b.item_name || '').localeCompare(String(b.item_name || '')));
+      output.sort((a, b) => String(b.item_name || '').localeCompare(String(a.item_name || ''), undefined, { sensitivity: 'base' }));
     }
 
     return output;
