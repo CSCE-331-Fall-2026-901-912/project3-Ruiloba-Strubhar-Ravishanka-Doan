@@ -72,7 +72,7 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
 
         <div style={{ marginBottom: "20px" }}>
           <span id="pg-toppings-label" className="pg-label-heading" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Toppings</span>
-          <div role="group" aria-labelledby="pg-toppings-label" className="pg-toppings-list-box" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", border: "1px solid #d5b5e4", borderRadius: "10px", padding: "12px" }}>
+          <div role="group" aria-labelledby="pg-toppings-label" className="pg-toppings-list-box" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "180px", overflowY: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y", border: "1px solid #d5b5e4", borderRadius: "10px", padding: "12px" }}>
             {toppings.map(item => {
               const itemIdStr = String(item.itemid);
               return (

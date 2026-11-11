@@ -781,6 +781,8 @@ export default function ManagerDashboardPage() {
             alignItems: "center",
             zIndex: 1000,
             backdropFilter: "blur(4px)",
+            overflow: "auto",
+            WebkitOverflowScrolling: "touch",
           }}
         >
           <form
@@ -792,8 +794,12 @@ export default function ManagerDashboardPage() {
               background: colors.white,
               padding: "24px",
               borderRadius: "16px",
-              width: "420px",
+              width: "min(420px, 92vw)",
               maxWidth: "92vw",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              touchAction: "pan-y",
               boxShadow: "0px 10px 25px rgba(0,0,0,0.1)",
               border: `1px solid ${colors.grayBorder}`,
               display: "flex",
