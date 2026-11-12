@@ -31,7 +31,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #d98b81; outline-offs
 .font-size-control button:focus-visible { outline: 3px solid #d98b81; outline-offset: 2px; }
 .page-magnifier__toggle:hover { background: #684879; border-color: #684879; }
 .page-magnifier__toggle:focus-visible { outline: 3px solid #d98b81; outline-offset: 3px; }
-.page-magnifier__lens { position: fixed; z-index: 10029; width: min(320px, calc(100vw - 24px)); height: min(240px, calc(100vh - 24px)); overflow: hidden; border: 3px solid #354037; border-radius: 9px; background: #fffefa; box-shadow: 0 5px 18px rgba(36,33,31,.28); pointer-events: none; }
+.page-magnifier__lens { position: fixed; z-index: 10029; left: 0; bottom: 0; width: 100vw; height: 35vh; max-height: 320px; overflow: hidden; border: 3px solid #354037; border-bottom: 0; border-radius: 9px 9px 0 0; background: #fffefa; box-shadow: 0 5px 18px rgba(36,33,31,.28); pointer-events: none; }
 .page-magnifier__content { position: absolute; top: 0; left: 0; width: 100vw; min-height: 100vh; transform-origin: top left; pointer-events: none; }
 .page-magnifier__content > .app { width: 100%; }
 .topbar { height: 76px; padding: 0 max(calc((100vw - 1200px) / 2), 5.5vw); display: flex; align-items: center; justify-content: space-between; gap: 26px; background: #fffefa; border-bottom: 1px solid #eeebe5; }

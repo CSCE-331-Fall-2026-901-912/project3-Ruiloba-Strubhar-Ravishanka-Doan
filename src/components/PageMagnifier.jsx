@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 
 const ZOOM = 2;
-const LENS_WIDTH = 320;
-const LENS_HEIGHT = 240;
+const MAX_LENS_HEIGHT = 320;
+const MIN_LENS_HEIGHT = 140;
 const EDGE_PADDING = 12;
 
 function syncPageSnapshot(pageRoot, content) {
@@ -72,35 +72,18 @@ export default function PageMagnifier() {
       const { x, y } = pointerRef.current;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const lensWidth = Math.max(
-        1,
-        Math.min(LENS_WIDTH, viewportWidth - EDGE_PADDING * 2),
-      );
-      const lensHeight = Math.max(
-        1,
-        Math.min(
-          coarsePointer.matches ? 180 : LENS_HEIGHT,
-          viewportHeight - EDGE_PADDING * 2,
+      const lensWidth = Math.max(1, viewportWidth);
+      const lensHeight = Math.min(
+        viewportHeight,
+        Math.max(
+          MIN_LENS_HEIGHT,
+          Math.min(MAX_LENS_HEIGHT, viewportHeight * 0.35),
         ),
       );
       lens.style.width = `${lensWidth}px`;
       lens.style.height = `${lensHeight}px`;
-
-      const lensLeft = coarsePointer.matches
-        ? (viewportWidth - lensWidth) / 2
-        : Math.max(
-            EDGE_PADDING,
-            Math.min(x + 20, viewportWidth - lensWidth - EDGE_PADDING),
-          );
-      const lensTop = coarsePointer.matches
-        ? EDGE_PADDING
-        : Math.max(
-            EDGE_PADDING,
-            Math.min(y + 20, viewportHeight - lensHeight - EDGE_PADDING),
-          );
-
-      lens.style.left = `${lensLeft}px`;
-      lens.style.top = `${lensTop}px`;
+      lens.style.left = "0px";
+      lens.style.bottom = "0px";
       content.style.transform = `translate3d(${
         lens.clientWidth / 2 - (x + window.scrollX) * ZOOM
       }px, ${
