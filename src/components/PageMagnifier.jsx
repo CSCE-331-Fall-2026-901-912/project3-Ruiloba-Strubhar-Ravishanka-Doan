@@ -119,7 +119,12 @@ export default function PageMagnifier() {
     };
 
     const updatePointerMovement = (event) => {
-      if (coarsePointer.matches || event.pointerType === "touch") {
+      if (event.pointerType === "touch") {
+        updatePointer(event);
+        return;
+      }
+
+      if (coarsePointer.matches) {
         return;
       }
 
@@ -127,16 +132,19 @@ export default function PageMagnifier() {
     };
 
     const updateTouchPointer = (event) => {
-      if (coarsePointer.matches && event.pointerType === "touch") {
+      if (event.pointerType === "touch") {
         updatePointer(event);
       }
     };
 
     const handleTouchStart = (event) => {
-      if (!coarsePointer.matches) {
-        return;
+      const touch = event.touches[0];
+      if (touch) {
+        updatePointer(touch);
       }
+    };
 
+    const handleTouchMove = (event) => {
       const touch = event.touches[0];
       if (touch) {
         updatePointer(touch);
@@ -175,6 +183,7 @@ export default function PageMagnifier() {
     window.addEventListener("pointermove", updatePointerMovement);
     window.addEventListener("pointerdown", updateTouchPointer);
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("scroll", updateSnapshot, { capture: true, passive: true });
     window.addEventListener("input", updateSnapshot, true);
     window.addEventListener("resize", updateViewport);
@@ -186,6 +195,7 @@ export default function PageMagnifier() {
       window.removeEventListener("pointermove", updatePointerMovement);
       window.removeEventListener("pointerdown", updateTouchPointer);
       window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("scroll", updateSnapshot, true);
       window.removeEventListener("input", updateSnapshot, true);
       window.removeEventListener("resize", updateViewport);

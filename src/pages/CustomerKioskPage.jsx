@@ -56,7 +56,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         if (!current || !Number.isFinite(current.temperature_2m)) throw new Error('Invalid weather data');
         const code = current.weather_code;
         const temp = current.temperature_2m;
-        const rainy = [51,53,55,61,63,65,80,81,82,95,96,99].includes(code);
+        const rainy = [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99].includes(code);
         const kind = rainy ? 'rainy' : temp >= 85 ? 'hot' : temp <= 55 ? 'cold' : 'mild';
         const icons = { rainy: '🌧️', hot: '☀️', cold: '☕', mild: '🌤️' };
         setWeather({ text: `${Math.round(temp)}°F outside`, icon: icons[kind], kind });
