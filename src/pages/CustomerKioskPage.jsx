@@ -8,7 +8,7 @@ import './customer-kiosk.css';
 import './high-contrast-customer-kiosk.css';
 
 // 1. Accepts 'isHighContrast' and 'setIsHighContrast' as shared incoming props instead of managing a duplicate local state
-export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, fontScale = 1 }) {
+export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, fontScale = 1, setFontScale }) {
   const order = useKioskOrder();
   const [drinks, setDrinks] = useState([]);
   const [toppings, setToppings] = useState([]);
@@ -21,6 +21,10 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState(null);
+
+  useEffect(() => {
+    setFontScale?.(1);
+  }, [setFontScale]);
 
   useEffect(() => {
     const controller = new AbortController();

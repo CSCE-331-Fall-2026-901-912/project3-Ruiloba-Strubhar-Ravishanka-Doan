@@ -10,6 +10,7 @@ function syncPageSnapshot(pageRoot, content) {
     return;
   }
 
+  const pageZoom = parseFloat(window.getComputedStyle(pageRoot).zoom) || 1;
   const clone = pageRoot.cloneNode(true);
   clone.setAttribute("aria-hidden", "true");
   clone.removeAttribute("id");
@@ -23,10 +24,10 @@ function syncPageSnapshot(pageRoot, content) {
       const bounds = element.getBoundingClientRect();
       clonedElement.style.position = "absolute";
       clonedElement.style.inset = "auto";
-      clonedElement.style.left = `${bounds.left + window.scrollX}px`;
-      clonedElement.style.top = `${bounds.top + window.scrollY}px`;
-      clonedElement.style.width = `${bounds.width}px`;
-      clonedElement.style.height = `${bounds.height}px`;
+      clonedElement.style.left = `${(bounds.left + window.scrollX) / pageZoom}px`;
+      clonedElement.style.top = `${(bounds.top + window.scrollY) / pageZoom}px`;
+      clonedElement.style.width = `${bounds.width / pageZoom}px`;
+      clonedElement.style.height = `${bounds.height / pageZoom}px`;
     }
 
     if (element instanceof HTMLInputElement && clonedElement instanceof HTMLInputElement) {
@@ -101,7 +102,7 @@ export default function PageMagnifier() {
       lens.style.left = `${lensLeft}px`;
       lens.style.top = `${lensTop}px`;
       content.style.transform = `translate3d(${
-        lens.clientWidth / 2 - x * ZOOM
+        lens.clientWidth / 2 - (x + window.scrollX) * ZOOM
       }px, ${
         lens.clientHeight / 2 - (y + window.scrollY) * ZOOM
       }px, 0) scale(${ZOOM})`;

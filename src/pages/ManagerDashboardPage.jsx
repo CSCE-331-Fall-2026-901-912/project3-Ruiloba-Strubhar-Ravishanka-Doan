@@ -691,18 +691,20 @@ export default function ManagerDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {reportData.payload.map((row, index) => (
-                    <tr key={index}>
-                      <td style={tdStyle}>{row.payType}</td>
-                      <td style={tdStyle}>{row.orders}</td>
-                      <td style={tdStyle}>{money(row.revenue)}</td>
-                    </tr>
-                  ))}
-                  {reportData.payload.length === 0 && (
-                    <tr>
-                      <td style={tdStyle} colSpan={3}>No payment data for this range.</td>
-                    </tr>
-                  )}
+                   {reportData.payload
+                     .filter((row) => !['kiosk', 'counter'].includes(String(row.payType).toLowerCase()))
+                     .map((row, index) => (
+                       <tr key={index}>
+                         <td style={tdStyle}>{row.payType}</td>
+                         <td style={tdStyle}>{row.orders}</td>
+                         <td style={tdStyle}>{money(row.revenue)}</td>
+                       </tr>
+                     ))}
+                   {reportData.payload.filter((row) => !['kiosk', 'counter'].includes(String(row.payType).toLowerCase())).length === 0 && (
+                     <tr>
+                       <td style={tdStyle} colSpan={3}>No payment data for this range.</td>
+                     </tr>
+                   )}
                 </tbody>
               </table>
             </div>

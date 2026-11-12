@@ -296,9 +296,10 @@ app.get('/api/reports/payment-methods', async (req, res) => {
               COUNT(DISTINCT orderid) AS orders,
               COALESCE(SUM(total) FILTER (WHERE total IS NOT NULL), 0) AS revenue
        FROM order_history
-       WHERE time::date BETWEEN $1::date AND $2::date
-       GROUP BY pay_type
-       ORDER BY revenue DESC`,
+        WHERE time::date BETWEEN $1::date AND $2::date
+          AND LOWER(pay_type) NOT IN ('kiosk', 'counter')
+        GROUP BY pay_type
+        ORDER BY revenue DESC`,
       [start, end]
     );
     res.json(result.rows.map(r => ({

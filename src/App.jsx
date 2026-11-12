@@ -43,6 +43,13 @@ export default function App() {
     }
   }, [current]);
 
+  // Reset Carol persona font size whenever the customer kiosk page is re-entered
+  useEffect(() => {
+    if (current === 'kiosk') {
+      setFontScale(1);
+    }
+  }, [current]);
+
   const Page = pages[current] || PortalPage;
 
   return (
@@ -72,6 +79,7 @@ export default function App() {
               isHighContrast={isHighContrast}
               setIsHighContrast={setIsHighContrast}
               fontScale={fontScale}
+              setFontScale={setFontScale}
             />
           )}
         </main>
