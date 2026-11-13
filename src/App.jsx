@@ -56,10 +56,10 @@ export default function App() {
     <>
       <div className={`app app-${current}`} style={{ zoom: String(fontScale) }}>
         {/* 2. Passed isHighContrast prop to the shared Persistent Header Bar */}
-        <Header 
-          current={current} 
-          onNavigate={setCurrent} 
-          isHighContrast={isHighContrast} 
+        <Header
+          current={current}
+          onNavigate={setCurrent}
+          isHighContrast={isHighContrast}
         />
 
         {/* Main Content Area Canvas Wrapper */}

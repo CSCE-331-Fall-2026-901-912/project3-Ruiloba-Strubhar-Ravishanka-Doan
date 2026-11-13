@@ -202,7 +202,12 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           onClick={() => setIsHighContrast(!isHighContrast)}
           aria-pressed={isHighContrast}
         >
-          {isHighContrast ? 'Standard Mode' : 'High Contrast Mode'}
+          <span style={{ display: isHighContrast ? 'inline' : 'none' }}>
+            Standard Mode
+          </span>
+          <span style={{ display: isHighContrast ? 'none' : 'inline' }}>
+            High Contrast Mode
+          </span>
         </button>
       </div>
 
@@ -230,6 +235,10 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           }}
         />
       )}
+
+
+
+
 
       {checkoutOpen && (
         <KioskCheckoutModal
