@@ -973,7 +973,7 @@ p {
 
 .pos-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 325px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 325px);
   align-items: start;
   gap: 18px;
 }
@@ -1357,7 +1357,7 @@ p {
 
   .pos-layout,
   .kiosk-layout {
-    grid-template-columns: minmax(0, 1fr) 290px;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 290px);
     gap: 12px;
   }
 
