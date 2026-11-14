@@ -10,7 +10,7 @@ export default function FontSizeControl({ scale, onScaleChange }) {
   const reset = () => onScaleChange(1);
 
   return (
-    <div className="font-size-control" role="group" aria-label="Change font size">
+    <div className="font-size-control notranslate" role="group" aria-label="Change font size">
       <button type="button" onClick={decrease} aria-label="Decrease font size">A-</button>
       <button type="button" onClick={reset} aria-label="Reset font size">A</button>
       <button type="button" onClick={increase} aria-label="Increase font size">A+</button>

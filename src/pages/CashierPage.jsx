@@ -22,7 +22,7 @@ const getDrinkEmoji = (name) => {
   return "🥤";
 };
 
-export default function CashierPage() {
+export default function CashierPage({ isHighContrast, setIsHighContrast, fontScale = 1, setFontScale }) {
   const order = useOrder();
 
   // Data State
@@ -316,6 +316,12 @@ export default function CashierPage() {
     grayBg: "#f9fafb"
   };
 
+  const drinkGridColumns = fontScale >= 1.3
+    ? "1fr"
+    : fontScale >= 1.1
+      ? "repeat(2, minmax(0, 1fr))"
+      : "repeat(auto-fill, minmax(min(180px, 100%), 1fr))";
+
   return (
     <main className="content-page" style={{ padding: "24px", fontFamily: "'Inter', system-ui, sans-serif", backgroundColor: colors.white, minHeight: "100vh", color: colors.black }}>
 
@@ -343,10 +349,10 @@ export default function CashierPage() {
         </div>
       )}
 
-      <div className="pos-layout" style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: "24px", alignItems: "flex-start" }}>
+      <div className="pos-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(260px, 400px)", gap: "24px", alignItems: "flex-start" }}>
 
         {/* LEFT COLUMN: FILTER CONTROLS & DRIVE DRINK BUTTON SELECTION GRID */}
-        <section className="menu-section" style={{ backgroundColor: colors.white }}>
+        <section className="menu-section" style={{ backgroundColor: colors.white, minWidth: 0 }}>
           <header style={{ marginBottom: "24px", padding: "16px", borderRadius: "12px", backgroundColor: colors.pink }}>
             <h1 style={{ margin: "0 0 4px 0", fontSize: "28px", fontWeight: "700", color: colors.black, textAlign: "center" }}>
               Cashier Counter
@@ -420,7 +426,7 @@ export default function CashierPage() {
           </div>
 
           {/* Itemized Grid Layout Mapping */}
-          <div className="drinks-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "16px" }}>
+          <div className="drinks-grid" style={{ display: "grid", gridTemplateColumns: drinkGridColumns, gap: "16px" }}>
             {getFilteredDrinks().map((drink) => {
               const isSeasonal = drink.item_category ? String(drink.item_category).toLowerCase().includes("seasonal") : false;
               const isOutOfStock = drink.inventory_count !== undefined && Number(drink.inventory_count) <= 0;
@@ -452,7 +458,9 @@ export default function CashierPage() {
                     justifyContent: "space-between",
                     position: "relative",
                     transition: "transform 0.1s ease, box-shadow 0.1s ease",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                    minWidth: 0,
+                    overflow: "hidden"
                   }}
                   onMouseEnter={(e) => { if (!isOutOfStock) e.currentTarget.style.transform = 'translateY(-2px)'; }}
                   onMouseLeave={(e) => { if (!isOutOfStock) e.currentTarget.style.transform = 'none'; }}
@@ -474,7 +482,7 @@ export default function CashierPage() {
                     </div>
 
                     <div style={{ flexGrow: 1, overflow: "hidden" }}>
-                      <strong style={{ fontSize: "15px", color: isOutOfStock ? "#9ca3af" : colors.black, display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: "1.3" }}>
+                       <strong style={{ fontSize: "15px", color: isOutOfStock ? "#9ca3af" : colors.black, display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: "1.3", overflowWrap: "anywhere" }}>
                         {drink.item_name || "Unnamed Drink"}
                       </strong>
                       <div style={{ marginTop: "4px", fontSize: "14px", color: isOutOfStock ? "#9ca3af" : "#4b5563", fontWeight: "600" }}>
@@ -524,7 +532,7 @@ export default function CashierPage() {
         </section>
 
         {/* RIGHT COLUMN: REAL-TIME TICKET RECEIPT & COST CALCULATIONS */}
-        <section className="order-summary-pane" style={{ border: `1px solid ${colors.grayBorder}`, background: colors.purple, borderRadius: "16px", padding: "20px", position: "sticky", top: "24px", display: "flex", flexDirection: "column" }}>
+        <section className="order-summary-pane" style={{ border: `1px solid ${colors.grayBorder}`, background: colors.purple, borderRadius: "16px", padding: "20px", position: fontScale >= 1.3 ? "static" : "sticky", top: "24px", display: "flex", flexDirection: "column", minWidth: 0 }}>
           <header style={{ borderBottom: `1px solid ${colors.grayBorder}`, paddingBottom: "16px", marginBottom: "16px" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
               <h2 style={{ margin: "0 0 4px 0", fontSize: "22px", fontWeight: "700" }}>
