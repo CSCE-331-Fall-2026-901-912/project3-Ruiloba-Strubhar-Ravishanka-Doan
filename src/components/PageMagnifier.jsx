@@ -7,7 +7,7 @@ const EDGE_PADDING = 12;
 
 function syncPageSnapshot(pageRoot, content) {
   if (!pageRoot || !content) {
-    return;
+    return new WeakMap();
   }
 
   const pageZoom = parseFloat(window.getComputedStyle(pageRoot).zoom) || 1;
@@ -18,9 +18,19 @@ function syncPageSnapshot(pageRoot, content) {
 
   const originalNodes = [pageRoot, ...pageRoot.querySelectorAll("*")];
   const clonedNodes = [clone, ...clone.querySelectorAll("*")];
+  const originalsByClone = new WeakMap();
   const scrollPositions = [];
   originalNodes.forEach((element, index) => {
     const clonedElement = clonedNodes[index];
+    originalsByClone.set(clonedElement, element);
+    if (
+      clonedElement instanceof HTMLElement &&
+      clonedElement.matches("a, button, input, select, textarea, [tabindex]")
+    ) {
+      clonedElement.tabIndex = -1;
+      clonedElement.removeAttribute("autofocus");
+    }
+
     if (window.getComputedStyle(element).position === "fixed") {
       const bounds = element.getBoundingClientRect();
       clonedElement.style.position = "absolute";
@@ -54,12 +64,14 @@ function syncPageSnapshot(pageRoot, content) {
     element.scrollTop = top;
     element.scrollLeft = left;
   });
+  return originalsByClone;
 }
 
 export default function PageMagnifier() {
   const [active, setActive] = useState(false);
   const lensRef = useRef(null);
   const contentRef = useRef(null);
+  const originalsByCloneRef = useRef(new WeakMap());
   const pointerRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
   useEffect(() => {
@@ -77,6 +89,17 @@ export default function PageMagnifier() {
 
     let pointerFrame = 0;
     let snapshotFrame = 0;
+
+    const pointerIsOverLens = (event) => {
+      const bounds = lens.getBoundingClientRect();
+      return (
+        event.clientX >= bounds.left &&
+        event.clientX <= bounds.right &&
+        event.clientY >= bounds.top &&
+        event.clientY <= bounds.bottom
+      );
+    };
+    let pointerInsideLens = pointerIsOverLens(pointerRef.current);
 
     const updateLens = () => {
       const { x, y } = pointerRef.current;
@@ -102,6 +125,12 @@ export default function PageMagnifier() {
     };
 
     const updatePointer = (event) => {
+      const isInsideLens = pointerIsOverLens(event);
+      if (isInsideLens && pointerInsideLens) {
+        return;
+      }
+
+      pointerInsideLens = isInsideLens;
       pointerRef.current = { x: event.clientX, y: event.clientY };
       if (!pointerFrame) {
         pointerFrame = window.requestAnimationFrame(() => {
@@ -151,7 +180,7 @@ export default function PageMagnifier() {
 
       snapshotFrame = window.requestAnimationFrame(() => {
         snapshotFrame = 0;
-        syncPageSnapshot(pageRoot, content);
+        originalsByCloneRef.current = syncPageSnapshot(pageRoot, content);
         updateLens();
       });
     };
@@ -180,7 +209,18 @@ export default function PageMagnifier() {
     window.addEventListener("scroll", updateSnapshot, { capture: true, passive: true });
     window.addEventListener("input", updateSnapshot, true);
     window.addEventListener("resize", updateViewport);
-    syncPageSnapshot(pageRoot, content);
+    const handleMagnifiedClick = (event) => {
+      const target = originalsByCloneRef.current.get(event.target);
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      target.click();
+    };
+    lens.addEventListener("click", handleMagnifiedClick);
+    originalsByCloneRef.current = syncPageSnapshot(pageRoot, content);
     updateLens();
 
     return () => {
@@ -192,6 +232,7 @@ export default function PageMagnifier() {
       window.removeEventListener("scroll", updateSnapshot, true);
       window.removeEventListener("input", updateSnapshot, true);
       window.removeEventListener("resize", updateViewport);
+      lens.removeEventListener("click", handleMagnifiedClick);
       if (pointerFrame) {
         window.cancelAnimationFrame(pointerFrame);
       }
@@ -219,7 +260,6 @@ export default function PageMagnifier() {
           ref={lensRef}
           className="page-magnifier__lens"
           aria-hidden="true"
-          inert
         >
           <div ref={contentRef} className="page-magnifier__content" />
         </div>

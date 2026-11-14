@@ -152,6 +152,16 @@ a:focus-visible {
   pointer-events: none;
 }
 
+.page-magnifier__content a,
+.page-magnifier__content button,
+.page-magnifier__content input,
+.page-magnifier__content label,
+.page-magnifier__content select,
+.page-magnifier__content textarea,
+.page-magnifier__content [role="button"] {
+  pointer-events: auto;
+}
+
 .page-magnifier__content>.app {
   width: 100%;
 }
