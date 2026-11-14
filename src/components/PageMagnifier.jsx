@@ -90,17 +90,6 @@ export default function PageMagnifier() {
     let pointerFrame = 0;
     let snapshotFrame = 0;
 
-    const pointerIsOverLens = (event) => {
-      const bounds = lens.getBoundingClientRect();
-      return (
-        event.clientX >= bounds.left &&
-        event.clientX <= bounds.right &&
-        event.clientY >= bounds.top &&
-        event.clientY <= bounds.bottom
-      );
-    };
-    let pointerInsideLens = pointerIsOverLens(pointerRef.current);
-
     const updateLens = () => {
       const { x, y } = pointerRef.current;
       const viewportWidth = window.innerWidth;
@@ -125,12 +114,6 @@ export default function PageMagnifier() {
     };
 
     const updatePointer = (event) => {
-      const isInsideLens = pointerIsOverLens(event);
-      if (isInsideLens && pointerInsideLens) {
-        return;
-      }
-
-      pointerInsideLens = isInsideLens;
       pointerRef.current = { x: event.clientX, y: event.clientY };
       if (!pointerFrame) {
         pointerFrame = window.requestAnimationFrame(() => {
