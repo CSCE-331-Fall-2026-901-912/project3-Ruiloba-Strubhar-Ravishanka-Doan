@@ -18,6 +18,7 @@ function syncPageSnapshot(pageRoot, content) {
 
   const originalNodes = [pageRoot, ...pageRoot.querySelectorAll("*")];
   const clonedNodes = [clone, ...clone.querySelectorAll("*")];
+  const scrollPositions = [];
   originalNodes.forEach((element, index) => {
     const clonedElement = clonedNodes[index];
     if (window.getComputedStyle(element).position === "fixed") {
@@ -39,11 +40,20 @@ function syncPageSnapshot(pageRoot, content) {
       clonedElement.selectedIndex = element.selectedIndex;
     }
 
-    clonedElement.scrollTop = element.scrollTop;
-    clonedElement.scrollLeft = element.scrollLeft;
+    if (element.scrollTop || element.scrollLeft) {
+      scrollPositions.push({
+        element: clonedElement,
+        top: element.scrollTop,
+        left: element.scrollLeft,
+      });
+    }
   });
 
   content.replaceChildren(clone);
+  scrollPositions.forEach(({ element, top, left }) => {
+    element.scrollTop = top;
+    element.scrollLeft = left;
+  });
 }
 
 export default function PageMagnifier() {
