@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const money = value => `$${Number(value).toFixed(2)}`;
 
@@ -29,8 +29,10 @@ function DrinkCup({ drink }) {
 
 // Added 'isHighContrast' prop to systematically adjust component state themes
 export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect, isHighContrast, fontScale = 1 }) {
+  const [search, setSearch] = useState('');
   const categories = ['All drinks', ...new Set(drinks.map(drink => drink.base_item_type).filter(Boolean))];
-  const visible = category === 'All drinks' ? drinks : drinks.filter(drink => drink.base_item_type === category);
+  const categoryDrinks = category === 'All drinks' ? drinks : drinks.filter(drink => drink.base_item_type === category);
+  const visible = categoryDrinks.filter(drink => drink.item_name?.toLowerCase().includes(search.trim().toLowerCase()));
   const drinkGridStyle = fontScale >= 1.3
     ? { gridTemplateColumns: '1fr' }
     : fontScale >= 1.1
@@ -38,6 +40,16 @@ export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect
       : undefined;
 
   return <>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      <input type="search" value={search} onChange={event => setSearch(event.target.value)}
+        placeholder="Search for a drink..." aria-label="Search drinks"
+        style={{ flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: 12,
+          border: isHighContrast ? '2px solid white' : '1px solid #c8b8ce',
+          background: isHighContrast ? '#1e003a' : 'white', color: isHighContrast ? 'white' : '#2d1937', font: 'inherit' }} />
+      {search && <button type="button" onClick={() => setSearch('')} aria-label="Clear search"
+        style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #c8b8ce',
+          background: isHighContrast ? '#1e003a' : 'white', color: isHighContrast ? 'white' : '#2d1937', cursor: 'pointer' }}>×</button>}
+    </div>
     <div className="pg-categories" role="group" aria-label="Drink categories">
       {categories.map(name => (
         <button
@@ -57,7 +69,7 @@ export default function KioskDrinkMenu({ drinks, category, setCategory, onSelect
         </button>
       ))}
     </div>
-    {visible.length === 0 ? <p role="status">No drinks in this category.</p> : <div className={fontScale >= 1.3 ? 'pg-drinks pg-drinks--zoomed' : 'pg-drinks'} style={drinkGridStyle}>
+    {visible.length === 0 ? <p role="status">No drinks match your search or category.</p> : <div className={fontScale >= 1.3 ? 'pg-drinks pg-drinks--zoomed' : 'pg-drinks'} style={drinkGridStyle}>
       {visible.map(drink => (
         <button
           key={drink.itemid}

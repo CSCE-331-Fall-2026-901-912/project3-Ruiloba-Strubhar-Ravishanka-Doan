@@ -33,6 +33,7 @@ export default function CashierPage({ isHighContrast, setIsHighContrast, fontSca
   const [categoryFilter, setCategoryFilter] = useState("All Drinks");
   const [sortFilter, setSortFilter] = useState("Alphabetical");
   const [availabilityFilter, setAvailabilityFilter] = useState("All");
+  const [drinkSearch, setDrinkSearch] = useState("");
 
   // Interface System States
   const [message, setMessage] = useState("");
@@ -173,6 +174,11 @@ export default function CashierPage({ isHighContrast, setIsHighContrast, fontSca
         const match = categoryFilter.toLowerCase().replace(/\s+/g, '');
         return type === match;
       });
+    }
+
+    const searchTerm = drinkSearch.trim().toLowerCase();
+    if (searchTerm) {
+      output = output.filter((d) => String(d.item_name || "").toLowerCase().includes(searchTerm));
     }
 
     if (availabilityFilter === "Available Only") {
@@ -423,6 +429,24 @@ export default function CashierPage({ isHighContrast, setIsHighContrast, fontSca
             >
               📋 {availabilityFilter === "Available Only" ? "Showing In-Stock Only" : "Showing All Menu Items"}
             </button>
+          </div>
+
+          {/* Cashier drink search (works with category, stock, and sorting filters) */}
+          <div style={{ position: "relative", marginBottom: "16px" }}>
+            <input
+              type="search"
+              aria-label="Search cashier drinks"
+              placeholder="Search for a drink..."
+              value={drinkSearch}
+              onChange={(event) => setDrinkSearch(event.target.value)}
+              style={{ width: "100%", boxSizing: "border-box", padding: "12px 44px 12px 14px", borderRadius: "12px", border: `1px solid ${colors.grayBorder}`, backgroundColor: colors.white, color: colors.black, fontSize: "15px" }}
+            />
+            {drinkSearch && (
+              <button type="button" aria-label="Clear drink search" onClick={() => setDrinkSearch("")}
+                style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: colors.purpleDark, fontSize: "22px", cursor: "pointer" }}>
+                ×
+              </button>
+            )}
           </div>
 
           {/* Itemized Grid Layout Mapping */}
