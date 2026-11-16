@@ -424,6 +424,97 @@ app.get(['/api/employees', '/api/employee', '/api/employees/list', '/api/staff']
   }
 });
 
+
+// Employee management: add, edit, and delete
+function employeePayload(body) {
+  const fields = ["first_name", "last_name", "role", "phone_number", "email", "user_name"];
+  const values = Object.fromEntries(fields.map(key => [key, String(body?.[key] ?? "").trim()]));
+  if (!values.first_name || !values.last_name || !values.role || !values.user_name) {
+    return { error: "First name, last name, role, and username are required." };
+  }
+  if (!["employee", "manager"].includes(values.role.toLowerCase())) {
+    return { error: "Role must be employee or manager." };
+  }
+  values.role = values.role.toLowerCase();
+  if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+    return { error: "Enter a valid email address." };
+  }
+  return { values };
+}
+
+app.post("/api/employees", async (req, res) => {
+  const { values, error } = employeePayload(req.body);
+  if (error) return res.status(400).json({ error });
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock($1)", [3312027]);
+    const duplicate = await client.query(
+      "SELECT id FROM employees WHERE LOWER(user_name) = LOWER($1) LIMIT 1", [values.user_name]
+    );
+    if (duplicate.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "That username is already in use." });
+    }
+    // Explicit ID supports existing tables without a configured ID sequence.
+    const next = await client.query("SELECT COALESCE(MAX(id), 0) + 1 AS id FROM employees");
+    const result = await client.query(
+      `INSERT INTO employees (id, first_name, last_name, role, phone_number, email, user_name)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, first_name, last_name, role, phone_number, email, user_name`,
+      [next.rows[0].id, values.first_name, values.last_name, values.role,
+       values.phone_number, values.email, values.user_name]
+    );
+    await client.query("COMMIT");
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (client) await client.query("ROLLBACK").catch(() => {});
+    console.error("Employee add failed:", err);
+    res.status(500).json({ error: "Failed to add employee." });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+app.put("/api/employees/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: "Invalid employee ID." });
+  const { values, error } = employeePayload(req.body);
+  if (error) return res.status(400).json({ error });
+  try {
+    const duplicate = await pool.query(
+      "SELECT id FROM employees WHERE LOWER(user_name) = LOWER($1) AND id <> $2 LIMIT 1",
+      [values.user_name, id]
+    );
+    if (duplicate.rowCount) return res.status(409).json({ error: "That username is already in use." });
+    const result = await pool.query(
+      `UPDATE employees SET first_name=$1, last_name=$2, role=$3, phone_number=$4,
+       email=$5, user_name=$6 WHERE id=$7
+       RETURNING id, first_name, last_name, role, phone_number, email, user_name`,
+      [values.first_name, values.last_name, values.role, values.phone_number,
+       values.email, values.user_name, id]
+    );
+    if (!result.rowCount) return res.status(404).json({ error: "Employee not found." });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Employee update failed:", err);
+    res.status(500).json({ error: "Failed to update employee." });
+  }
+});
+
+app.delete("/api/employees/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: "Invalid employee ID." });
+  try {
+    const result = await pool.query("DELETE FROM employees WHERE id=$1 RETURNING id", [id]);
+    if (!result.rowCount) return res.status(404).json({ error: "Employee not found." });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Employee delete failed:", err);
+    res.status(500).json({ error: "Failed to delete employee. It may be referenced by another record." });
+  }
+});
+
 // Fallback static resource router pipeline layer
 app.use(express.static(buildDirectory));
 app.get(/.*/, (_request, response) => {

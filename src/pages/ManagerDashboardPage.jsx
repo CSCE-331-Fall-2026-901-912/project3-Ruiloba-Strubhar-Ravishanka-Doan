@@ -26,6 +26,11 @@ const emptyForm = {
   base_item_type: "",
 };
 
+const emptyEmployeeForm = {
+  first_name: "", last_name: "", role: "employee",
+  phone_number: "", email: "", user_name: "",
+};
+
 const reportOptions = [
   { value: "sales-summary", label: "Sales Summary", endpoint: "sales-summary" },
   { value: "sales-by-day", label: "Sales by Day", endpoint: "sales-by-day" },
@@ -81,6 +86,9 @@ export default function ManagerDashboardPage() {
   const [employeesLoading, setEmployeesLoading] = useState(true);
   const [employeesError, setEmployeesError] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [employeeDialog, setEmployeeDialog] = useState(null);
+  const [employeeForm, setEmployeeForm] = useState(emptyEmployeeForm);
+  const [employeeSaving, setEmployeeSaving] = useState(false);
   const formCloseRef = useRef(null);
 
   const loadMenu = async () => {
@@ -217,6 +225,56 @@ export default function ManagerDashboardPage() {
       await loadMenu();
     } catch (err) {
       setMenuError(err.message || "Failed to delete menu item");
+    }
+  };
+
+  const openEmployeeDialog = (employee = null) => {
+    setEmployeesError("");
+    setEmployeeDialog(employee || "add");
+    setEmployeeForm(employee ? {
+      first_name: employee.first_name || "",
+      last_name: employee.last_name || "",
+      role: employee.role || "employee",
+      phone_number: employee.phone_number || "",
+      email: employee.email || "",
+      user_name: employee.user_name || "",
+    } : { ...emptyEmployeeForm });
+  };
+
+  const saveEmployee = async (event) => {
+    event.preventDefault();
+    const editing = employeeDialog !== "add";
+    setEmployeeSaving(true);
+    setEmployeesError("");
+    try {
+      const response = await fetch(editing ? `/api/employees/${employeeDialog.id}` : "/api/employees", {
+        method: editing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(employeeForm),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Failed to save employee.");
+      setEmployeeDialog(null);
+      setMessage(editing ? "Employee updated." : "Employee added.");
+      await loadEmployees();
+    } catch (err) {
+      setEmployeesError(err.message);
+    } finally {
+      setEmployeeSaving(false);
+    }
+  };
+
+  const deleteEmployee = async (employee) => {
+    if (!window.confirm(`Delete ${employee.first_name} ${employee.last_name}? This cannot be undone.`)) return;
+    setEmployeesError("");
+    try {
+      const response = await fetch(`/api/employees/${employee.id}`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Failed to delete employee.");
+      setMessage("Employee deleted.");
+      await loadEmployees();
+    } catch (err) {
+      setEmployeesError(err.message);
     }
   };
 
@@ -475,9 +533,14 @@ export default function ManagerDashboardPage() {
               onChange={(event) => setEmployeeSearch(event.target.value)}
               style={{ ...inputStyle, maxWidth: "320px" }}
             />
-            <button onClick={loadEmployees} style={buttonStyle(colors.mediumBlue, colors.white)}>
-              Refresh
-            </button>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button onClick={loadEmployees} style={buttonStyle(colors.grayBg, colors.black, `1px solid ${colors.grayBorder}`)}>
+                Refresh
+              </button>
+              <button onClick={() => openEmployeeDialog()} style={buttonStyle(colors.mediumBlue, colors.white)}>
+                Add Employee
+              </button>
+            </div>
           </div>
 
           {employeesError && (
@@ -498,6 +561,7 @@ export default function ManagerDashboardPage() {
                     <th style={thStyle}>Phone</th>
                     <th style={thStyle}>Email</th>
                     <th style={thStyle}>Username</th>
+                    <th style={thStyle}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -510,11 +574,17 @@ export default function ManagerDashboardPage() {
                       <td style={tdStyle}>{employee.phone_number || "-"}</td>
                       <td style={tdStyle}>{employee.email || "-"}</td>
                       <td style={tdStyle}>{employee.user_name || "-"}</td>
+                      <td style={tdStyle}>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button onClick={() => openEmployeeDialog(employee)} style={buttonStyle(colors.purple, colors.purpleDark, `1px solid ${colors.grayBorder}`)}>Edit</button>
+                          <button onClick={() => deleteEmployee(employee)} style={buttonStyle(colors.pink, colors.pinkDark, `1px solid ${colors.grayBorder}`)}>Delete</button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                   {filteredEmployees.length === 0 && (
                     <tr>
-                      <td style={tdStyle} colSpan={7}>No employees found.</td>
+                      <td style={tdStyle} colSpan={8}>No employees found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -770,6 +840,64 @@ export default function ManagerDashboardPage() {
             </div>
           )}
         </section>
+      )}
+
+      {employeeDialog && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+          display: "flex", justifyContent: "center", alignItems: "center",
+          zIndex: 1001, backdropFilter: "blur(4px)", padding: "12px"
+        }}>
+          <form onSubmit={saveEmployee} role="dialog" aria-modal="true"
+            aria-label={employeeDialog === "add" ? "Add Employee" : "Edit Employee"}
+            style={{
+              background: colors.white, padding: "24px", borderRadius: "16px",
+              width: "min(420px, 92vw)", maxHeight: "90vh", overflowY: "auto",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+              display: "flex", flexDirection: "column", gap: "12px"
+            }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "20px" }}>
+                {employeeDialog === "add" ? "Add Employee" : `Edit ${employeeDialog.first_name} ${employeeDialog.last_name}`}
+              </h3>
+              <button type="button" onClick={() => setEmployeeDialog(null)}
+                style={{ border: "none", background: "none", fontSize: "24px", cursor: "pointer" }}
+                aria-label="Close dialog">×</button>
+            </div>
+            {[
+              ["first_name", "First name", "text"],
+              ["last_name", "Last name", "text"],
+              ["phone_number", "Phone", "tel"],
+              ["email", "Email", "email"],
+              ["user_name", "Username", "text"],
+            ].map(([key, label, type]) => (
+              <div key={key}>
+                <label htmlFor={`employee-${key}`} style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>{label}</label>
+                <input id={`employee-${key}`} type={type} style={inputStyle}
+                  value={employeeForm[key]}
+                  onChange={e => setEmployeeForm(prev => ({ ...prev, [key]: e.target.value }))}
+                  required={["first_name", "last_name", "user_name"].includes(key)} />
+              </div>
+            ))}
+            <div>
+              <label htmlFor="employee-role" style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600" }}>Role</label>
+              <select id="employee-role" style={inputStyle} value={employeeForm.role}
+                onChange={e => setEmployeeForm(prev => ({ ...prev, role: e.target.value }))}>
+                <option value="employee">employee</option>
+                <option value="manager">manager</option>
+              </select>
+            </div>
+            {employeesError && <div role="alert" style={{ color: "#b91c1c", fontSize: "13px" }}>{employeesError}</div>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <button type="button" onClick={() => setEmployeeDialog(null)}
+                style={buttonStyle(colors.grayBg, colors.black, `1px solid ${colors.grayBorder}`)}>Cancel</button>
+              <button type="submit" disabled={employeeSaving}
+                style={buttonStyle(colors.purpleDark, colors.white)}>
+                {employeeSaving ? "Saving..." : employeeDialog === "add" ? "Add Employee" : "Update Employee"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {(showAdd || editingItem) && (
