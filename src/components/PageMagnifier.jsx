@@ -193,14 +193,25 @@ export default function PageMagnifier() {
     window.addEventListener("input", updateSnapshot, true);
     window.addEventListener("resize", updateViewport);
     const handleMagnifiedClick = (event) => {
-      const target = originalsByCloneRef.current.get(event.target);
-      if (!(target instanceof HTMLElement)) {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const control = event.target.closest(
+        "a, button, input, label, select, textarea, [role='button']",
+      );
+      if (!control || !content.contains(control)) {
+        return;
+      }
+
+      const original = originalsByCloneRef.current.get(control);
+      if (!(original instanceof HTMLElement)) {
         return;
       }
 
       event.preventDefault();
       event.stopPropagation();
-      target.click();
+      original.click();
     };
     lens.addEventListener("click", handleMagnifiedClick);
     originalsByCloneRef.current = syncPageSnapshot(pageRoot, content);
