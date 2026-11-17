@@ -23,6 +23,8 @@ function syncPageSnapshot(pageRoot, content) {
   originalNodes.forEach((element, index) => {
     const clonedElement = clonedNodes[index];
     originalsByClone.set(clonedElement, element);
+    const computedStyle = window.getComputedStyle(element);
+
     if (
       clonedElement instanceof HTMLElement &&
       clonedElement.matches("a, button, input, select, textarea, [tabindex]")
@@ -31,7 +33,7 @@ function syncPageSnapshot(pageRoot, content) {
       clonedElement.removeAttribute("autofocus");
     }
 
-    if (window.getComputedStyle(element).position === "fixed") {
+    if (computedStyle.position === "fixed") {
       const bounds = element.getBoundingClientRect();
       clonedElement.style.position = "absolute";
       clonedElement.style.inset = "auto";
@@ -39,6 +41,18 @@ function syncPageSnapshot(pageRoot, content) {
       clonedElement.style.top = `${(bounds.top + window.scrollY) / pageZoom}px`;
       clonedElement.style.width = `${bounds.width / pageZoom}px`;
       clonedElement.style.height = `${bounds.height / pageZoom}px`;
+    }
+
+    if (element instanceof HTMLElement && clonedElement instanceof HTMLElement) {
+      const scrollableY =
+        ["auto", "scroll", "overlay"].includes(computedStyle.overflowY) &&
+        element.scrollHeight > element.clientHeight;
+      const scrollableX =
+        ["auto", "scroll", "overlay"].includes(computedStyle.overflowX) &&
+        element.scrollWidth > element.clientWidth;
+      if (scrollableY || scrollableX) {
+        clonedElement.style.pointerEvents = "auto";
+      }
     }
 
     if (element instanceof HTMLInputElement && clonedElement instanceof HTMLInputElement) {
@@ -89,6 +103,7 @@ export default function PageMagnifier() {
 
     let pointerFrame = 0;
     let snapshotFrame = 0;
+    const mirroredScrollTargets = new WeakSet();
 
     const updateLens = () => {
       const { x, y } = pointerRef.current;
@@ -177,6 +192,36 @@ export default function PageMagnifier() {
       updateLens();
     };
 
+    const handlePageScroll = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        updateSnapshot();
+        return;
+      }
+
+      if (content.contains(target)) {
+        const original = originalsByCloneRef.current.get(target);
+        if (!(original instanceof HTMLElement)) {
+          return;
+        }
+
+        if (original.scrollTop !== target.scrollTop || original.scrollLeft !== target.scrollLeft) {
+          mirroredScrollTargets.add(original);
+          original.scrollTop = target.scrollTop;
+          original.scrollLeft = target.scrollLeft;
+          window.requestAnimationFrame(() => mirroredScrollTargets.delete(original));
+        }
+        return;
+      }
+
+      if (mirroredScrollTargets.has(target)) {
+        mirroredScrollTargets.delete(target);
+        return;
+      }
+
+      updateSnapshot();
+    };
+
     const observer = new MutationObserver(updateSnapshot);
     observer.observe(pageRoot, {
       attributes: true,
@@ -189,7 +234,7 @@ export default function PageMagnifier() {
     window.addEventListener("pointerdown", updateTouchPointer);
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
-    window.addEventListener("scroll", updateSnapshot, { capture: true, passive: true });
+    window.addEventListener("scroll", handlePageScroll, { capture: true, passive: true });
     window.addEventListener("input", updateSnapshot, true);
     window.addEventListener("resize", updateViewport);
     const handleMagnifiedClick = (event) => {
@@ -200,11 +245,12 @@ export default function PageMagnifier() {
       const control = event.target.closest(
         "a, button, input, label, select, textarea, [role='button']",
       );
-      if (!control || !content.contains(control)) {
+      const clickedElement = control || event.target;
+      if (!content.contains(clickedElement)) {
         return;
       }
 
-      const original = originalsByCloneRef.current.get(control);
+      const original = originalsByCloneRef.current.get(clickedElement);
       if (!(original instanceof HTMLElement)) {
         return;
       }
@@ -223,7 +269,7 @@ export default function PageMagnifier() {
       window.removeEventListener("pointerdown", updateTouchPointer);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("scroll", updateSnapshot, true);
+      window.removeEventListener("scroll", handlePageScroll, true);
       window.removeEventListener("input", updateSnapshot, true);
       window.removeEventListener("resize", updateViewport);
       lens.removeEventListener("click", handleMagnifiedClick);
