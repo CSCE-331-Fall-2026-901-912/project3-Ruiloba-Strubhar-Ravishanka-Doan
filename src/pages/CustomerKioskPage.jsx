@@ -98,7 +98,16 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save order');
-      setReceipt(data);
+      const resolvedOrderId =
+        data.orderId ??
+        data.order_id ??
+        data.orderid ??
+        data.id ??
+        data.order?.orderId ??
+        data.order?.order_id ??
+        data.order?.orderid ??
+        data.order?.id;
+      setReceipt({ ...data, orderId: resolvedOrderId });
       setCheckoutOpen(false);
       order.clear();
     } catch (err) {
@@ -150,7 +159,10 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
             <p className="pg-eyebrow">PEARL GARDEN · ORDER CONFIRMED</p>
             <h2 id="pg-receipt-title">Thank you for your order!</h2>
             <p className="pg-receipt-subtitle">Your little pick-me-up is on its way ♡</p>
-            <div className="pg-receipt-number"><span>YOUR TICKET NUMBER</span><strong>#{receipt.orderId}</strong></div>
+            <div className="pg-receipt-number">
+              <span>YOUR TICKET NUMBER</span>
+              <strong>{receipt.orderId != null ? `#${receipt.orderId}` : 'Pending'}</strong>
+            </div>
             <p id="pg-receipt-description" className="pg-receipt-summary">
               Order saved · {receipt.items?.length ?? 0} line item(s) · Total ${Number(receipt.total).toFixed(2)}
             </p>
@@ -218,10 +230,6 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           }}
         />
       )}
-
-
-
-
 
       {checkoutOpen && (
         <KioskCheckoutModal
