@@ -188,21 +188,29 @@ html,
 
 .pg-a11y-controls,
 .pg-a11y-stacked-panel {
-    position: fixed;
-    bottom: 75px !important;
+    position: fixed !important;
+    bottom: 15px !important;
     left: 15px !important;
-    display: flex;
+    display: flex !important;
     flex-direction: column !important;
-    width: auto;
+    gap: 8px !important;
+    width: 145px !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    zoom: 1 !important;
     z-index: 2147483647 !important;
 }
 
 .pg-contrast-toggle-btn {
+    position: static !important;
+    display: block !important;
     background-color: #ffffff !important;
     color: #120024 !important;
     border: 3px solid #ffb3df !important;
     padding: 10px 14px !important;
+    margin: 0 !important;
     font-size: 13px !important;
+    line-height: 1.2 !important;
     font-weight: bold !important;
     cursor: pointer !important;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
@@ -210,6 +218,49 @@ html,
     width: 145px !important;
     box-sizing: border-box !important;
     border-radius: 6px !important;
+    z-index: 2147483647 !important;
+}
+
+.pg-a11y-controls .page-magnifier__toggle {
+    position: static !important;
+    display: block !important;
+    width: 145px !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    box-sizing: border-box !important;
+    z-index: 2147483647 !important;
+}
+
+.pg-a11y-controls .font-size-control {
+    position: static !important;
+    width: 145px !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    box-sizing: border-box !important;
+    z-index: 2147483647 !important;
+}
+
+.pg-a11y-controls .font-size-control button {
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+}
+
+/* High Contrast Mode overrides for all three accessibility buttons */
+.pg-a11y-controls.high-contrast .pg-contrast-toggle-btn,
+.pg-a11y-controls.high-contrast .page-magnifier__toggle,
+.pg-a11y-controls.high-contrast .font-size-control button {
+    background-color: #1e003a !important;
+    color: #ffffff !important;
+    border: 3px solid #ffffff !important;
+    font-weight: bold !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Keep the magnifier lens below the stacked accessibility buttons so it never hides High Contrast Mode */
+.page-magnifier__lens {
+    z-index: 2147483640 !important;
 }
 
 .pg-contrast-toggle-btn:active {

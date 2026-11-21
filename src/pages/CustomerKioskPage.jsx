@@ -194,23 +194,6 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         />
       </div>
 
-      {/* Floating Accessibility Controls Wrapper handles parent-level layout triggers */}
-      <div className="pg-a11y-controls">
-        <button
-          type="button"
-          className="pg-contrast-toggle-btn"
-          onClick={() => setIsHighContrast(!isHighContrast)}
-          aria-pressed={isHighContrast}
-        >
-          <span style={{ display: isHighContrast ? 'inline' : 'none' }}>
-            Standard Mode
-          </span>
-          <span style={{ display: isHighContrast ? 'none' : 'inline' }}>
-            High Contrast Mode
-          </span>
-        </button>
-      </div>
-
       <footer className="pg-footer">Need a hand? Our team is right over there <span aria-hidden="true">♥</span></footer>
 
       {selected && (

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const ZOOM = 2;
 const MAX_LENS_HEIGHT = 320;
@@ -295,15 +296,17 @@ export default function PageMagnifier() {
       >
         {active ? "Turn magnifier off" : "Turn magnifier on"}
       </button>
-      {active && (
-        <div
-          ref={lensRef}
-          className="page-magnifier__lens"
-          aria-hidden="true"
-        >
-          <div ref={contentRef} className="page-magnifier__content" />
-        </div>
-      )}
+      {active &&
+        createPortal(
+          <div
+            ref={lensRef}
+            className="page-magnifier__lens"
+            aria-hidden="true"
+          >
+            <div ref={contentRef} className="page-magnifier__content" />
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

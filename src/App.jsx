@@ -84,8 +84,25 @@ export default function App() {
           )}
         </main>
       </div>
-      <PageMagnifier />
-      <FontSizeControl scale={fontScale} onScaleChange={setFontScale} />
+      <div className={`pg-a11y-controls ${isHighContrast ? "high-contrast" : ""}`}>
+        {current === "kiosk" && (
+          <button
+            type="button"
+            className="pg-contrast-toggle-btn"
+            onClick={() => setIsHighContrast(!isHighContrast)}
+            aria-pressed={isHighContrast}
+          >
+            <span style={{ display: isHighContrast ? "inline" : "none" }}>
+              Standard Mode
+            </span>
+            <span style={{ display: isHighContrast ? "none" : "inline" }}>
+              High Contrast Mode
+            </span>
+          </button>
+        )}
+        <PageMagnifier />
+        <FontSizeControl scale={fontScale} onScaleChange={setFontScale} />
+      </div>
     </>
   );
 }
