@@ -62,14 +62,12 @@ export default function App() {
           isHighContrast={isHighContrast}
         />
 
-        {/* Main Content Area Canvas Wrapper */}
-        <main
+        {/* Main Content Area Canvas Wrapper (div so child pages own the single top-level <main>) */}
+        <div
           ref={mainContentRef}
           className="page-shell"
           tabIndex={-1}
           style={{ outline: "none" }}
-          role="main"
-          aria-live="polite"
         >
           {current === "home" ? (
             <PortalPage onNavigate={setCurrent} />
@@ -82,9 +80,12 @@ export default function App() {
               setFontScale={setFontScale}
             />
           )}
-        </main>
+        </div>
       </div>
-      <div className={`pg-a11y-controls ${isHighContrast ? "high-contrast" : ""}`}>
+      <aside
+        aria-label="Accessibility controls"
+        className={`pg-a11y-controls ${isHighContrast ? "high-contrast" : ""}`}
+      >
         {current === "kiosk" && (
           <button
             type="button"
@@ -102,7 +103,7 @@ export default function App() {
         )}
         <PageMagnifier />
         <FontSizeControl scale={fontScale} onScaleChange={setFontScale} />
-      </div>
+      </aside>
     </>
   );
 }
