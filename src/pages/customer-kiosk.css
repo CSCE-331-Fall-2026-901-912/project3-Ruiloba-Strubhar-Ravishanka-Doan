@@ -138,7 +138,7 @@
 
 .pg-drinks {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
   gap: 13px
 }
 
@@ -150,6 +150,7 @@
   align-items: center;
   text-align: left;
   gap: 10px;
+  min-width: 0;
   min-height: 134px;
   padding: 13px;
   box-shadow: 0 3px 12px #6d51730c;
@@ -172,13 +173,15 @@
 .pg-drink-copy {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 7px;
   min-width: 0
 }
 
 .pg-drink-copy strong {
   font-size: .92rem;
-  overflow-wrap: break-word
+  overflow-wrap: break-word;
+  word-break: normal
 }
 
 .pg-drink-copy small {
@@ -481,16 +484,22 @@
 }
 
 @media(max-width:1100px) {
-  .pg-drinks {
-    grid-template-columns: repeat(2, minmax(0, 1fr))
-  }
-
   .pg-hero {
     grid-template-columns: 1fr 1fr
   }
 
   .pg-weather {
     display: none
+  }
+}
+
+@media(max-width:860px) {
+  .pg-layout {
+    grid-template-columns: 1fr
+  }
+
+  .pg-ticket {
+    min-height: 380px
   }
 }
 
@@ -510,18 +519,6 @@
 
   .pg-brand img {
     height: 110px
-  }
-
-  .pg-layout {
-    grid-template-columns: 1fr
-  }
-
-  .pg-ticket {
-    min-height: 380px
-  }
-
-  .pg-drinks {
-    grid-template-columns: repeat(2, minmax(0, 1fr))
   }
 }
 

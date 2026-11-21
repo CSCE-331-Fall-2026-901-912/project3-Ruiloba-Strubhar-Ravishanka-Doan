@@ -31,7 +31,14 @@ export default function DrinkMenu({ add, selectedCategory, setSelectedCategory }
         ))}
       </div>
       {filtered.length === 0 && <p role="status">No drinks match your search.</p>}
-      <div className="drink-grid">
+      <div
+        className="drink-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 12,
+        }}
+      >
         {filtered.map((drink) => (
           <button
             className="drink-card"
@@ -39,14 +46,36 @@ export default function DrinkMenu({ add, selectedCategory, setSelectedCategory }
             type="button"
             aria-label={`${drink.name}, ${drink.note || ""}. Price: ${money(drink.price)}. Add to ticket.`}
             onClick={() => add(drink)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              minWidth: 0,
+              width: "100%",
+              textAlign: "left",
+            }}
           >
-            <span className="drink-art" aria-hidden="true">{drink.icon}</span>
-            <span className="drink-card-copy">
+            <span className="drink-art" aria-hidden="true" style={{ flexShrink: 0 }}>
+              {drink.icon}
+            </span>
+            <span
+              className="drink-card-copy"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flex: 1,
+                minWidth: 0,
+                overflowWrap: "break-word",
+                wordBreak: "normal",
+              }}
+            >
               <strong>{drink.name}</strong>
               <small>{drink.note}</small>
               <b>{money(drink.price)}</b>
             </span>
-            <span className="add-button" aria-hidden="true">+</span>
+            <span className="add-button" aria-hidden="true" style={{ flexShrink: 0 }}>
+              +
+            </span>
           </button>
         ))}
       </div>
