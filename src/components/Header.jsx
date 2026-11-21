@@ -37,6 +37,7 @@ export default function Header({ current, isHighContrast }) {
       <div className="brand" style={{ display: "flex", alignItems: "center", gap: "10px", color: "#fff" }}>
         <span
           className="brand-mark notranslate"
+          aria-hidden="true"
           style={isHighContrast ? {
             fontSize: "35px",
             fontWeight: "900",
@@ -68,7 +69,7 @@ export default function Header({ current, isHighContrast }) {
         </span>
 
         <span style={{ display: "flex", flexDirection: "column" }}>
-          <h1
+          <span
             className="notranslate"
             style={isHighContrast ? {
               margin: 0, padding: 0, fontSize: "30px", fontWeight: "950", lineHeight: "1.1", color: "#ffffff"
@@ -76,12 +77,12 @@ export default function Header({ current, isHighContrast }) {
               margin: 0, padding: 0, fontSize: "30px", fontWeight: "700", lineHeight: "1.1", color: "#fff"
             }}
           >
-            Pearl Garden 🧋
-          </h1>
+            Pearl Garden <span aria-hidden="true">🧋</span>
+          </span>
           <small style={isHighContrast ? {
             fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px", marginTop: "2px", color: "#ffb3df", fontWeight: "900"
           } : {
-            fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px", marginTop: "2px", opacity: 0.9, color: "#fff"
+            fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px", marginTop: "2px", color: "#fff"
           }}>
             Squad_12 TEA HOUSE
           </small>
@@ -95,7 +96,7 @@ export default function Header({ current, isHighContrast }) {
         </div>
 
         <div className="open-status" style={{ fontSize: "18px", fontWeight: "500", display: "flex", alignItems: "center", color: "#fff" }}>
-          <span style={isHighContrast ? {
+          <span aria-hidden="true" style={isHighContrast ? {
             display: "inline-block", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#00ff00", marginRight: "8px", border: "2px solid #ffffff"
           } : {
             display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#4caf50", marginRight: "6px"

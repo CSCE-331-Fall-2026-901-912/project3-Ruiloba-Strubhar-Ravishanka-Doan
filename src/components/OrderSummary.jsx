@@ -4,13 +4,13 @@ import { money } from "../data/shop.js";
 // Added 'isHighContrast' property to sync layout variables
 export default function OrderSummary({ order, onCheckout, checkoutLabel = "Charge guest", isHighContrast }) {
   return (
-    <aside className="order-panel" style={isHighContrast ? { backgroundColor: '#1e003a', border: '4px solid #ffffff' } : {}}>
+    <aside aria-label="Order summary" className="order-panel" style={isHighContrast ? { backgroundColor: '#1e003a', border: '4px solid #ffffff' } : {}}>
       <div className="order-heading">
         <div>
           <p className="eyebrow" style={isHighContrast ? { color: '#ffb3df', fontWeight: '900' } : {}}>YOUR ORDER</p>
           <h2 style={isHighContrast ? { color: '#ffffff', fontWeight: '900' } : {}}>Current ticket</h2>
         </div>
-        <span className="item-count" style={isHighContrast ? { backgroundColor: '#ffffff', color: '#120024', fontWeight: '900', border: '2px solid #ffb3df' } : {}}>{order.count}</span>
+        <span className="item-count" aria-label={`${order.count} items`} style={isHighContrast ? { backgroundColor: '#ffffff', color: '#120024', fontWeight: '900', border: '2px solid #ffb3df' } : {}}>{order.count}</span>
       </div>
       {order.cart.length === 0 ? (
         <div className="empty-order">

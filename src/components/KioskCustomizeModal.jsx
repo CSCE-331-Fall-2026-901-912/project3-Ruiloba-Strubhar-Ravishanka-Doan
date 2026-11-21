@@ -12,17 +12,23 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
   const closeRef = useRef(null);
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement;
     closeRef.current?.focus();
     const handleKey = event => { if (event.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+        previouslyFocused.focus();
+      }
+    };
   }, [onClose]);
 
   const handleModalKeyDown = (event) => {
     if (event.key !== 'Tab' || !modalRef.current) return;
 
     const focusableElements = modalRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
     if (focusableElements.length === 0) return;
 
@@ -81,7 +87,6 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
                     type="checkbox"
                     checked={selectedToppingIds.includes(itemIdStr)}
                     onChange={() => toggleTopping(itemIdStr)}
-                    aria-label={`${item.item_name} (+${Number(item.item_cost).toFixed(2)})`}
                   />
                   <span>{item.item_name} (+${Number(item.item_cost).toFixed(2)})</span>
                 </label>
@@ -98,13 +103,12 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
               onClick={() => setSize('M')}
               className={size === 'M' ? 'active' : ''}
               aria-pressed={size === 'M'}
-              aria-label="Medium"
               style={{
                 flex: 1,
                 padding: "12px",
                 borderRadius: "12px",
-                border: size === 'M' ? "2px solid #b78bc6" : "1px solid #d5b5e4",
-                background: size === 'M' ? "#c49bd0" : "#fff",
+                border: size === 'M' ? "2px solid #572649" : "1px solid #d5b5e4",
+                background: size === 'M' ? "#572649" : "#fff",
                 color: size === 'M' ? "#fff" : "#392c53",
                 fontWeight: "700",
                 fontSize: "1rem",
@@ -119,13 +123,12 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
               onClick={() => setSize('L')}
               className={size === 'L' ? 'active' : ''}
               aria-pressed={size === 'L'}
-              aria-label="Large (+$0.50)"
               style={{
                 flex: 1,
                 padding: "12px",
                 borderRadius: "12px",
-                border: size === 'L' ? "2px solid #b78bc6" : "1px solid #d5b5e4",
-                background: size === 'L' ? "#c49bd0" : "#fff",
+                border: size === 'L' ? "2px solid #572649" : "1px solid #d5b5e4",
+                background: size === 'L' ? "#572649" : "#fff",
                 color: size === 'L' ? "#fff" : "#392c53",
                 fontWeight: "700",
                 fontSize: "1rem",
@@ -142,7 +145,7 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
           <span>Quantity</span>
           <div>
             <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} aria-label="Decrease quantity">−</button>
-            <strong>{quantity}</strong>
+            <strong aria-live="polite">{quantity}</strong>
             <button type="button" onClick={() => setQuantity(quantity + 1)} aria-label="Increase quantity">+</button>
           </div>
         </div>

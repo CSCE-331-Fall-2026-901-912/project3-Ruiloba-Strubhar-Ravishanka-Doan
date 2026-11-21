@@ -9,10 +9,16 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
     const [focusedCode, setFocusedCode] = useState(null);
     const containerRef = useRef(null);
     const searchInputRef = useRef(null);
+    const triggerRef = useRef(null);
 
     useEffect(() => {
         const syncLanguages = () => {
             const select = document.querySelector('.goog-te-combo');
+            if (select) {
+                select.setAttribute('aria-hidden', 'true');
+                select.setAttribute('tabindex', '-1');
+                select.setAttribute('aria-label', 'Hidden Google Translate selector');
+            }
             if (select && select.options && select.options.length > 1) {
                 const opts = Array.from(select.options)
                     .filter((opt) => opt.value && opt.value !== 'en')
@@ -175,6 +181,7 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
         setIsOpen(false);
         setSearchQuery('');
         triggerGoogleTranslate(lang.code);
+        triggerRef.current?.focus();
     };
 
     const handleContainerBlur = (e) => {
@@ -197,6 +204,7 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
             <div
                 id="google_translate_element"
                 aria-hidden="true"
+                inert=""
                 style={{
                     position: 'fixed',
                     top: '-9999px',
@@ -207,9 +215,11 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
             />
 
             <button
+                ref={triggerRef}
                 type="button"
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
+                aria-controls="pg-language-listbox"
                 aria-label={`Choose a language, current language ${selectedLabel}`}
                 onClick={() => setIsOpen((prev) => !prev)}
                 onKeyDown={(e) => {
@@ -265,7 +275,10 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
             {isOpen && (
                 <div
                     onKeyDown={(e) => {
-                        if (e.key === 'Escape') setIsOpen(false);
+                        if (e.key === 'Escape') {
+                            setIsOpen(false);
+                            triggerRef.current?.focus();
+                        }
                     }}
                     style={
                         isHighContrast
@@ -315,7 +328,6 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
                                     fontFamily: '"DM Sans", sans-serif',
                                     fontSize: '13px',
                                     fontWeight: '800',
-                                    outline: 'none',
                                 }
                                 : {
                                     width: '100%',
@@ -327,12 +339,12 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
                                     color: '#24211f',
                                     fontFamily: '"DM Sans", sans-serif',
                                     fontSize: '13px',
-                                    outline: 'none',
                                 }
                         }
                     />
 
                     <ul
+                        id="pg-language-listbox"
                         role="listbox"
                         aria-label="Available languages"
                         style={{
@@ -345,10 +357,11 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
                     >
                         {filteredLanguages.length === 0 ? (
                             <li
+                                role="status"
                                 style={{
                                     padding: '8px 10px',
                                     fontSize: '12px',
-                                    color: isHighContrast ? '#ffb3df' : '#89847f',
+                                    color: isHighContrast ? '#ffb3df' : '#59544f',
                                     fontWeight: isHighContrast ? '800' : '500',
                                 }}
                             >
@@ -360,9 +373,11 @@ const GoogleTranslateAPI = ({ isHighContrast = false }) => {
                                 const isFocused = focusedCode === lang.code;
 
                                 return (
-                                    <li key={lang.code} role="option" aria-selected={isSelected}>
+                                    <li key={lang.code} role="presentation">
                                         <button
                                             type="button"
+                                            role="option"
+                                            aria-selected={isSelected}
                                             onClick={() => handleSelect(lang)}
                                             onFocus={() => setFocusedCode(lang.code)}
                                             onBlur={() => setFocusedCode(null)}

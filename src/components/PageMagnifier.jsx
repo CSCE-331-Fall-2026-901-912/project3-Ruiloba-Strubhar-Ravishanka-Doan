@@ -122,11 +122,9 @@ export default function PageMagnifier() {
       lens.style.height = `${lensHeight}px`;
       lens.style.left = "0px";
       lens.style.bottom = "0px";
-      content.style.transform = `translate3d(${
-        lens.clientWidth / 2 - (x + window.scrollX) * ZOOM
-      }px, ${
-        lens.clientHeight / 2 - (y + window.scrollY) * ZOOM
-      }px, 0) scale(${ZOOM})`;
+      content.style.transform = `translate3d(${lens.clientWidth / 2 - (x + window.scrollX) * ZOOM
+        }px, ${lens.clientHeight / 2 - (y + window.scrollY) * ZOOM
+        }px, 0) scale(${ZOOM})`;
     };
 
     const updatePointer = (event) => {
@@ -302,6 +300,7 @@ export default function PageMagnifier() {
             ref={lensRef}
             className="page-magnifier__lens"
             aria-hidden="true"
+            inert=""
           >
             <div ref={contentRef} className="page-magnifier__content" />
           </div>,

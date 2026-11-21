@@ -4,14 +4,14 @@ const money = amount => `$${Number(amount).toFixed(2)}`;
 
 export default function KioskTicket({ order, onCheckout, onEdit, submitting, isHighContrast }) {
   return (
-    <aside className="pg-ticket" style={isHighContrast ? { backgroundColor: '#1e003a', border: '4px solid #ffffff' } : {}}>
+    <aside aria-label="Current order ticket" className="pg-ticket" style={isHighContrast ? { backgroundColor: '#1e003a', border: '4px solid #ffffff' } : {}}>
       <p className="pg-eyebrow" style={isHighContrast ? { color: '#ffb3df', fontWeight: '900' } : {}}>YOUR ORDER</p>
       <h2 style={isHighContrast ? { color: '#ffffff', fontWeight: '900' } : {}}>Current ticket</h2>
 
       <div className="pg-ticket-items">
         {order.items.length === 0 ? (
           <div className="pg-empty">
-            <img src="/pearl-garden-cup.png" alt="" />
+            <img src="/pearl-garden-cup.png" alt="" aria-hidden="true" />
             <strong style={isHighContrast ? { color: '#ffffff', fontWeight: '900' } : {}}>Your order is empty</strong>
             <span style={isHighContrast ? { color: '#ffffff', fontWeight: '700' } : {}}>Select a drink to get started!</span>
           </div>
