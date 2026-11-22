@@ -3,6 +3,8 @@ import KioskDrinkMenu from '../components/KioskDrinkMenu.jsx';
 import KioskCustomizeModal from '../components/KioskCustomizeModal.jsx';
 import KioskTicket from '../components/KioskTicket.jsx';
 import KioskCheckoutModal from '../components/KioskCheckoutModal.jsx';
+import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
+import CustomerOrderHistory from '../components/CustomerOrderHistory.jsx';
 import useKioskOrder from '../hooks/useKioskOrder.js';
 import './customer-kiosk.css';
 import './high-contrast-customer-kiosk.css';
@@ -21,10 +23,33 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState(null);
+  const [customerSignedIn, setCustomerSignedIn] = useState(false);
+  const [checkingCustomer, setCheckingCustomer] = useState(true);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [accountMessage, setAccountMessage] = useState('');
+  const [history, setHistory] = useState({ open: false, orders: [], loading: false, error: '' });
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     setFontScale?.(1);
   }, [setFontScale]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/auth/me', { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('Account status could not be checked.');
+        return response.json();
+      })
+      .then(data => setCustomerSignedIn(Boolean(data.authenticated)))
+      .catch(err => {
+        if (err.name !== 'AbortError') setAccountMessage(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCheckingCustomer(false);
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,6 +111,52 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
     .map(name => drinks.find(drink => drink.item_name?.toLowerCase() === name.toLowerCase()))
     .find(Boolean) || drinks[0];
 
+  async function signInWithGoogle(credential) {
+    setAccountBusy(true);
+    setAccountMessage('');
+    try {
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Google sign-in failed.');
+      setCustomerSignedIn(true);
+    } catch (err) {
+      setAccountMessage(err.message);
+    } finally {
+      setAccountBusy(false);
+    }
+  }
+
+  async function signOutCustomer() {
+    setAccountBusy(true);
+    setAccountMessage('');
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST' });
+      if (!response.ok) throw new Error('Could not sign out. Please try again.');
+      setCustomerSignedIn(false);
+      setHistory({ open: false, orders: [], loading: false, error: '' });
+    } catch (err) {
+      setAccountMessage(err.message);
+    } finally {
+      setAccountBusy(false);
+    }
+  }
+
+  async function openOrderHistory() {
+    setHistory({ open: true, orders: [], loading: true, error: '' });
+    try {
+      const response = await fetch('/api/kiosk/orders/history');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not load order history.');
+      setHistory({ open: true, orders: data.orders || [], loading: false, error: '' });
+    } catch (err) {
+      setHistory({ open: true, orders: [], loading: false, error: err.message });
+    }
+  }
+
   async function submitOrder(tip, payType) {
     if (submitting) return;
     setSubmitting(true);
@@ -141,6 +212,30 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
               Try {recommendedDrink.item_name} <span aria-hidden="true">♡</span>
             </button>
           )}
+        </div>
+        <div className="pg-account">
+          {checkingCustomer ? (
+            <p role="status">Checking account…</p>
+          ) : customerSignedIn ? (
+            <>
+              <p>Signed in · future orders will be saved to your history</p>
+              <div className="pg-account-actions">
+                <button type="button" onClick={openOrderHistory} disabled={accountBusy}>My orders</button>
+                <button type="button" onClick={signOutCustomer} disabled={accountBusy}>Sign out</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>Order as a guest, or sign in to save orders to your history.</p>
+              <GoogleSignInButton
+                clientId={googleClientId}
+                onCredential={signInWithGoogle}
+                onError={setAccountMessage}
+              />
+              {accountBusy && <p role="status">Signing in…</p>}
+            </>
+          )}
+          {accountMessage && <p className="pg-account-message" role="alert">{accountMessage}</p>}
         </div>
       </header>
 
@@ -238,6 +333,14 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           isHighContrast={isHighContrast}
           onClose={() => setCheckoutOpen(false)}
           onConfirm={submitOrder}
+        />
+      )}
+      {history.open && (
+        <CustomerOrderHistory
+          orders={history.orders}
+          loading={history.loading}
+          error={history.error}
+          onClose={() => setHistory(current => ({ ...current, open: false }))}
         />
       )}
     </main>

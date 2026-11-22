@@ -1,13 +1,21 @@
+import 'dotenv/config';
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pkg from 'pg';
+import { OAuth2Client } from 'google-auth-library';
+import { SignJWT, jwtVerify } from 'jose';
 const { Pool } = pkg;
 
 const app = express();
 const port = process.env.PORT || 3000;
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const buildDirectory = path.join(currentDirectory, "dist");
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const sessionSecret = new TextEncoder().encode(process.env.SESSION_SECRET || '');
+const sessionCookieName = 'pg_customer_session';
+const sessionLifetimeSeconds = 30 * 60;
+const googleClient = new OAuth2Client();
 
 app.use(express.json());
 
@@ -26,6 +34,106 @@ const pool = new Pool({
 // Health check checkpoint
 app.get("/api/health", (_request, response) => {
   response.json({ status: "ok" });
+});
+
+function customerAuthConfigured() {
+  return Boolean(googleClientId && sessionSecret.length >= 32);
+}
+
+function setCustomerSessionCookie(response, token, maxAge) {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  response.setHeader(
+    'Set-Cookie',
+    `${sessionCookieName}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secure}`
+  );
+}
+
+async function getCustomerSubject(request) {
+  if (!customerAuthConfigured()) return null;
+  const cookie = request.headers.cookie
+    ?.split(';')
+    .map(value => value.trim())
+    .find(value => value.startsWith(`${sessionCookieName}=`));
+  if (!cookie) return null;
+
+  const token = cookie.slice(sessionCookieName.length + 1);
+  try {
+    const { payload } = await jwtVerify(token, sessionSecret, { algorithms: ['HS256'] });
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+app.post('/api/auth/google', async (request, response) => {
+  if (!customerAuthConfigured()) {
+    return response.status(503).json({ error: 'Google sign-in is not configured.' });
+  }
+  const credential = request.body?.credential;
+  if (typeof credential !== 'string' || credential.length > 12000) {
+    return response.status(400).json({ error: 'A valid Google credential is required.' });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: googleClientId,
+    });
+    const subject = ticket.getPayload()?.sub;
+    if (!subject) return response.status(401).json({ error: 'Google sign-in could not be verified.' });
+
+    const token = await new SignJWT({})
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject(subject)
+      .setIssuedAt()
+      .setExpirationTime(`${sessionLifetimeSeconds}s`)
+      .sign(sessionSecret);
+    setCustomerSessionCookie(response, token, sessionLifetimeSeconds);
+    return response.json({ authenticated: true });
+  } catch {
+    return response.status(401).json({ error: 'Google sign-in could not be verified.' });
+  }
+});
+
+app.get('/api/auth/me', async (request, response) => {
+  response.json({ authenticated: Boolean(await getCustomerSubject(request)) });
+});
+
+app.post('/api/auth/logout', (_request, response) => {
+  setCustomerSessionCookie(response, '', 0);
+  response.status(204).end();
+});
+
+app.get('/api/kiosk/orders/history', async (request, response) => {
+  const subject = await getCustomerSubject(request);
+  if (!subject) return response.status(401).json({ error: 'Sign in to view order history.' });
+
+  try {
+    const result = await pool.query(
+      `SELECT oh.orderid,
+              MAX(oh.time) AS ordered_at,
+              MAX(oh.total) AS total,
+              json_agg(json_build_object(
+                'drinkName', oh.drink_name,
+                'topping', oh.topping,
+                'quantity', oh.item_quantity,
+                'size', oh.item_size,
+                'subtotal', oh.item_cost_subtotal
+              ) ORDER BY oh.drink_name) AS items
+       FROM customer_order_links links
+       JOIN order_history oh ON oh.orderid = links.order_id
+       WHERE links.google_sub = $1
+         AND oh.server = 'customer-kiosk'
+       GROUP BY oh.orderid
+       ORDER BY MAX(oh.time) DESC
+       LIMIT 20`,
+      [subject]
+    );
+    response.json({ orders: result.rows });
+  } catch (error) {
+    console.error('Customer order history error:', error);
+    response.status(500).json({ error: 'Unable to load order history.' });
+  }
 });
 
 // GET API: Fetch menu items for the website and kiosk
@@ -360,6 +468,7 @@ app.get('/api/reports/inventory', async (_req, res) => {
 // Customer kiosk checkout (separate from the cashier endpoint)
 app.post('/api/kiosk/orders', async (req, res) => {
   const { items, tip = 0, payType } = req.body || {};
+  const customerSubject = await getCustomerSubject(req);
   if (!['mobile', 'cash', 'card'].includes(payType)) return res.status(400).json({ error: 'Please select Mobile, Cash, or Card.' });
   if (!Array.isArray(items) || items.length === 0 || items.length > 100) return res.status(400).json({ error: 'Please add a drink.' });
   const tipCents = Math.round(Number(tip) * 100);
@@ -402,6 +511,12 @@ app.post('/api/kiosk/orders', async (req, res) => {
       await client.query(`INSERT INTO order_history (orderid, item_cost_subtotal, phone_number, pay_type, time, drink_name, topping, item_quantity, item_size, tips, tax, total, server)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [orderId, line.lineSubtotal, '000-000-0000', payType, new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents/100 : null, last ? taxCents/100 : null, last ? totalCents/100 : null, 'customer-kiosk']);
+    }
+    if (customerSubject) {
+      await client.query(
+        'INSERT INTO customer_order_links (google_sub, order_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [customerSubject, orderId]
+      );
     }
     await client.query('COMMIT');
     res.status(201).json({ success: true, orderId, items: lines, subtotal: subtotalCents/100, tax: taxCents/100, tip: tipCents/100, total: totalCents/100 });
@@ -526,6 +641,21 @@ app.get(/.*/, (_request, response) => {
     await pool.query("SELECT setval('menu_itemid_seq', (SELECT COALESCE(MAX(itemid),0) FROM menu))");
   } catch (err) {
     console.error('Sequence sync warning:', err.message);
+  }
+  try {
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS customer_order_links (
+        google_sub TEXT NOT NULL,
+        order_id BIGINT NOT NULL,
+        linked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (google_sub, order_id)
+      )`
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS customer_order_links_order_id_idx ON customer_order_links (order_id)'
+    );
+  } catch (err) {
+    console.error('Customer order history setup failed:', err.message);
   }
   app.listen(port, () => {
     console.log(`Pearl Garden backend server is listening on port ${port}`);

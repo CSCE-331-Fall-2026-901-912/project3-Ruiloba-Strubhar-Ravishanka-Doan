@@ -11,7 +11,10 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "dotenv": "^18.0.10",
     "express": "^5.1.0",
+    "google-auth-library": "^11.3.4",
+    "jose": "^6.2.18",
     "pg": "^8.23.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
