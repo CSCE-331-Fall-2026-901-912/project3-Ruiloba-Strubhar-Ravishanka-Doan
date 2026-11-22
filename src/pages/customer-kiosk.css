@@ -125,8 +125,15 @@
   border-radius: 10px;
   background: #fff;
   color: var(--pg-ink);
-  padding: 8px 12px;
+  min-height: 40px;
+  padding: 8px 16px;
   font-weight: 700
+}
+
+.pg-google-signin {
+  width: 240px;
+  max-width: 100%;
+  min-height: 40px
 }
 
 .pg-account-actions button:disabled {

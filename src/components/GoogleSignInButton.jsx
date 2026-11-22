@@ -28,7 +28,9 @@ export default function GoogleSignInButton({ clientId, onCredential, onError }) 
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: 'outline',
         size: 'large',
+        shape: 'rectangular',
         text: 'continue_with',
+        width: 240,
       });
     };
     const handleScriptError = () => {
@@ -59,5 +61,5 @@ export default function GoogleSignInButton({ clientId, onCredential, onError }) 
   if (!clientId) {
     return <p className="pg-account-note">Google sign-in is not configured. Guest checkout is still available.</p>;
   }
-  return <div ref={buttonRef} aria-label="Sign in with Google" />;
+  return <div className="pg-google-signin" ref={buttonRef} aria-label="Sign in with Google" />;
 }
