@@ -56,6 +56,23 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
 
   useEffect(() => {
     const controller = new AbortController();
+    fetch('/api/auth/me', { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('Account status could not be checked.');
+        return response.json();
+      })
+      .then(data => setCustomerSignedIn(Boolean(data.authenticated)))
+      .catch(err => {
+        if (err.name !== 'AbortError') setAccountMessage(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCheckingCustomer(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
     async function loadMenu() {
       try {
         const response = await fetch('/api/kiosk/menu', { signal: controller.signal });
@@ -224,6 +241,30 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
             </button>
           )}
         </div>
+        <div className="pg-account">
+          {checkingCustomer ? (
+            <p role="status">Checking account…</p>
+          ) : customerSignedIn ? (
+            <>
+              <p>Signed in · future orders will be saved to your history</p>
+              <div className="pg-account-actions">
+                <button type="button" onClick={openOrderHistory} disabled={accountBusy}>My orders</button>
+                <button type="button" onClick={signOutCustomer} disabled={accountBusy}>Sign out</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>Order as a guest, or sign in to save orders to your history.</p>
+              <GoogleSignInButton
+                clientId={googleClientId}
+                onCredential={signInWithGoogle}
+                onError={setAccountMessage}
+              />
+              {accountBusy && <p role="status">Signing in…</p>}
+            </>
+          )}
+          {accountMessage && <p className="pg-account-message" role="alert">{accountMessage}</p>}
+        </div>
       </header>
 
       {error && (
@@ -332,6 +373,14 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           isHighContrast={isHighContrast}
           onClose={() => setCheckoutOpen(false)}
           onConfirm={submitOrder}
+        />
+      )}
+      {history.open && (
+        <CustomerOrderHistory
+          orders={history.orders}
+          loading={history.loading}
+          error={history.error}
+          onClose={() => setHistory(current => ({ ...current, open: false }))}
         />
       )}
     </main>

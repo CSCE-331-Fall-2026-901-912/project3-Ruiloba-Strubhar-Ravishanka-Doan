@@ -58,7 +58,7 @@
   min-height: 215px;
   padding: 22px 32px;
   display: grid;
-  grid-template-columns: 1.25fr .85fr 1fr;
+  grid-template-columns: minmax(0, 1.25fr) minmax(140px, .85fr) minmax(0, 1fr) auto;
   align-items: center;
   gap: 20px
 }
@@ -99,6 +99,89 @@
 
 .pg-cloud {
   font-size: 4rem
+}
+
+.pg-account {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 260px;
+  font-size: .9rem
+}
+
+.pg-account p {
+  margin-bottom: 0
+}
+
+.pg-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px
+}
+
+.pg-account-actions button {
+  border: 1px solid #b78bc6;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pg-ink);
+  min-height: 40px;
+  padding: 8px 16px;
+  font-weight: 700
+}
+
+.pg-google-signin {
+  width: 240px;
+  max-width: 100%;
+  min-height: 40px
+}
+
+.pg-account-actions button:disabled {
+  opacity: .6;
+  cursor: wait
+}
+
+.pg-account-note,
+.pg-account-message {
+  font-size: .85rem;
+  max-width: 250px
+}
+
+.pg-account-message {
+  color: #9b1c31
+}
+
+.pg-account-history {
+  width: min(100%, 620px)
+}
+
+.pg-account-history-list {
+  max-height: min(60vh, 500px);
+  overflow: auto;
+  padding-left: 24px
+}
+
+.pg-account-history-list > li {
+  border-top: 1px solid #d5b5df;
+  padding: 14px 0
+}
+
+.pg-account-order-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px
+}
+
+.pg-account-history-list time {
+  display: block;
+  margin-top: 4px;
+  color: #65566b;
+  font-size: .9rem
+}
+
+.pg-account-history-list ul {
+  padding-left: 20px;
+  margin-bottom: 0
 }
 
 .pg-layout {
@@ -485,11 +568,16 @@
 
 @media(max-width:1100px) {
   .pg-hero {
-    grid-template-columns: 1fr 1fr
+    grid-template-columns: 1fr auto
   }
 
   .pg-weather {
     display: none
+  }
+
+  .pg-account {
+    grid-column: 1 / -1;
+    justify-self: start
   }
 }
 
@@ -519,6 +607,11 @@
 
   .pg-brand img {
     height: 110px
+  }
+
+  .pg-account {
+    grid-column: 1;
+    max-width: 100%
   }
 }
 

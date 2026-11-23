@@ -1,13 +1,21 @@
+import 'dotenv/config';
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pkg from 'pg';
+import { OAuth2Client } from 'google-auth-library';
+import { SignJWT, jwtVerify } from 'jose';
 const { Pool } = pkg;
 
 const app = express();
 const port = process.env.PORT || 3000;
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const buildDirectory = path.join(currentDirectory, "dist");
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const sessionSecret = new TextEncoder().encode(process.env.SESSION_SECRET || '');
+const sessionCookieName = 'pg_customer_session';
+const sessionLifetimeSeconds = 30 * 60;
+const googleClient = new OAuth2Client();
 
 app.use(express.json());
 
@@ -525,6 +533,12 @@ app.post('/api/kiosk/orders', async (req, res) => {
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [orderId, line.lineSubtotal, '000-000-0000', payType, new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents / 100 : null, last ? taxCents / 100 : null, last ? totalCents / 100 : null, 'customer-kiosk']);
     }
+    if (customerSubject) {
+      await client.query(
+        'INSERT INTO customer_order_links (google_sub, order_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [customerSubject, orderId]
+      );
+    }
     await client.query('COMMIT');
     res.status(201).json({
       success: true,
@@ -656,6 +670,21 @@ app.get(/.*/, (_request, response) => {
     await pool.query("SELECT setval('menu_itemid_seq', (SELECT COALESCE(MAX(itemid),0) FROM menu))");
   } catch (err) {
     console.error('Startup sync warning:', err.message);
+  }
+  try {
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS customer_order_links (
+        google_sub TEXT NOT NULL,
+        order_id BIGINT NOT NULL,
+        linked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (google_sub, order_id)
+      )`
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS customer_order_links_order_id_idx ON customer_order_links (order_id)'
+    );
+  } catch (err) {
+    console.error('Customer order history setup failed:', err.message);
   }
   app.listen(port, () => {
     console.log(`Pearl Garden backend server is listening on port ${port}`);
