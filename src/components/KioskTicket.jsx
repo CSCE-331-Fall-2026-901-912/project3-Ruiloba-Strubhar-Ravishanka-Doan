@@ -1,8 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { calculateDiscountAmount, useRewards } from '../hooks/RewardsContext.jsx';
+import UseRewardsModal from './UseRewardsModal.jsx';
 
 const money = amount => `$${Number(amount).toFixed(2)}`;
 
-export default function KioskTicket({ order, onCheckout, onEdit, submitting, isHighContrast }) {
+export default function KioskTicket({ order, toppings = [], onCheckout, onEdit, submitting, isHighContrast }) {
+  const { user, selectedDiscounts, usedPoints } = useRewards();
+  const [rewardsModalOpen, setRewardsModalOpen] = useState(false);
+
+  const discountAmount = user
+    ? calculateDiscountAmount(order.items, selectedDiscounts, toppings)
+    : 0;
+  const rawTotal = order.subtotal + order.tax;
+  const finalTotal = Math.max(0, Math.round((rawTotal - discountAmount) * 100) / 100);
+
   return (
     <aside aria-label="Current order ticket" className="pg-ticket" style={isHighContrast ? { backgroundColor: '#1e003a', border: '4px solid #ffffff' } : {}}>
       <p className="pg-eyebrow" style={isHighContrast ? { color: '#ffb3df', fontWeight: '900' } : {}}>YOUR ORDER</p>
@@ -62,11 +73,43 @@ export default function KioskTicket({ order, onCheckout, onEdit, submitting, isH
       <div className="pg-totals" style={isHighContrast ? { borderTop: '3px solid #ffffff', paddingTop: '12px' } : {}}>
         <div><span style={isHighContrast ? { color: '#ffffff' } : {}}>Subtotal</span><strong style={isHighContrast ? { color: '#ffffff' } : {}}>{money(order.subtotal)}</strong></div>
         <div><span style={isHighContrast ? { color: '#ffffff' } : {}}>Tax (8.25%)</span><strong style={isHighContrast ? { color: '#ffffff' } : {}}>{money(order.tax)}</strong></div>
-        <div className="pg-grand-total"><span style={isHighContrast ? { color: '#ffffff' } : {}}>Total Before Tip</span><strong style={isHighContrast ? { color: '#ffb3df', fontSize: '1.4rem' } : {}}>{money(order.subtotal + order.tax)}</strong></div>
+        {user && discountAmount > 0 && (
+          <div className="pg-rewards-discount-row">
+            <span style={isHighContrast ? { color: '#ffb3df', fontWeight: '800' } : {}}>
+              Rewards Discount ({usedPoints} pts)
+            </span>
+            <strong style={isHighContrast ? { color: '#ffb3df', fontWeight: '900' } : {}}>
+              −{money(discountAmount)}
+            </strong>
+          </div>
+        )}
+        <div className="pg-grand-total">
+          <span style={isHighContrast ? { color: '#ffffff' } : {}}>Total Before Tip</span>
+          <strong style={isHighContrast ? { color: '#ffb3df', fontSize: '1.4rem' } : {}}>{money(finalTotal)}</strong>
+        </div>
       </div>
+
+      {user && (
+        <button
+          className="pg-use-rewards-btn"
+          type="button"
+          disabled={!order.items.length || submitting}
+          style={isHighContrast ? { backgroundColor: '#120024', color: '#ffb3df', border: '3px solid #ffb3df', fontWeight: '900' } : {}}
+          onClick={() => setRewardsModalOpen(true)}
+        >
+          {usedPoints > 0 ? `Use Rewards (${usedPoints} pts selected)` : 'Use Rewards'}
+        </button>
+      )}
+
       <button className="pg-primary" type="button" disabled={!order.items.length || submitting} style={isHighContrast ? { backgroundColor: '#ffffff', color: '#120024', border: '3px solid #ffb3df', fontWeight: '950', fontSize: '1.2rem' } : {}} onClick={onCheckout}>
         {submitting ? 'Processing…' : 'Checkout'}
       </button>
+
+      <UseRewardsModal
+        isOpen={rewardsModalOpen}
+        onClose={() => setRewardsModalOpen(false)}
+        isHighContrast={isHighContrast}
+      />
     </aside>
   );
 }

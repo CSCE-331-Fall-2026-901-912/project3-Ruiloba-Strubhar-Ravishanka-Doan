@@ -23,23 +23,142 @@ const pool = new Pool({
   }
 });
 
+// Ensure rewards_members table exists matching the required schema
+async function ensureRewardsTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rewards_members (
+      id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      points INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
 // Health check checkpoint
 app.get("/api/health", (_request, response) => {
   response.json({ status: "ok" });
 });
 
+// POST API: Rewards member login or account creation
+app.post('/api/rewards/auth', async (req, res) => {
+  const { mode = 'login', email, password, googleCredential } = req.body || {};
+
+  try {
+    let resolvedEmail = String(email || '').trim().toLowerCase();
+    let resolvedPassword = String(password || '').trim();
+
+    if (googleCredential) {
+      const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(googleCredential)}`);
+      if (!tokenRes.ok) {
+        return res.status(401).json({ error: 'Invalid Google authentication token.' });
+      }
+      const tokenInfo = await tokenRes.json();
+      if (!tokenInfo.email) {
+        return res.status(400).json({ error: 'Google account did not provide an email address.' });
+      }
+      resolvedEmail = String(tokenInfo.email).trim().toLowerCase();
+      resolvedPassword = resolvedPassword || `google_oauth_${tokenInfo.sub || resolvedEmail}`;
+    }
+
+    if (!resolvedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid Google email address.' });
+    }
+    if (!resolvedPassword) {
+      return res.status(400).json({ error: 'Please enter your password.' });
+    }
+
+    const existing = await pool.query(
+      'SELECT id, email, password, points, created_at FROM rewards_members WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      [resolvedEmail]
+    );
+
+    if (mode === 'signup') {
+      if (existing.rowCount > 0) {
+        return res.status(409).json({ error: 'An account with that email already exists. Please log in.' });
+      }
+      const inserted = await pool.query(
+        `INSERT INTO rewards_members (email, password, points)
+         VALUES ($1, $2, 0)
+         RETURNING id, email, points, created_at`,
+        [resolvedEmail, resolvedPassword]
+      );
+      return res.status(201).json({ user: inserted.rows[0] });
+    }
+
+    // Default: login mode
+    if (existing.rowCount === 0) {
+      if (googleCredential) {
+        const inserted = await pool.query(
+          `INSERT INTO rewards_members (email, password, points)
+           VALUES ($1, $2, 0)
+           RETURNING id, email, points, created_at`,
+          [resolvedEmail, resolvedPassword]
+        );
+        return res.status(201).json({ user: inserted.rows[0] });
+      }
+      return res.status(404).json({ error: 'No rewards account found for that email. Please create an account.' });
+    }
+
+    const member = existing.rows[0];
+    if (!googleCredential && member.password !== resolvedPassword) {
+      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+    }
+
+    return res.json({
+      user: {
+        id: member.id,
+        email: member.email,
+        points: Math.max(0, Math.min(1000, Number(member.points) || 0)),
+        created_at: member.created_at,
+      },
+    });
+  } catch (err) {
+    console.error('Rewards auth failure:', err);
+    return res.status(500).json({ error: 'Failed to authenticate rewards account.' });
+  }
+});
+
+// PUT API: Persist finalized points changes (clamped between 0 and 1000)
+app.put('/api/rewards/points', async (req, res) => {
+  const { email, points } = req.body || {};
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const clampedPoints = Math.max(0, Math.min(1000, Math.round(Number(points) || 0)));
+
+  if (!cleanEmail) {
+    return res.status(400).json({ error: 'Member email is required.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE rewards_members
+       SET points = $1
+       WHERE LOWER(email) = LOWER($2)
+       RETURNING id, email, points, created_at`,
+      [clampedPoints, cleanEmail]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Rewards member not found.' });
+    }
+
+    return res.json({ user: result.rows[0] });
+  } catch (err) {
+    console.error('Rewards points update failure:', err);
+    return res.status(500).json({ error: 'Failed to update points in database.' });
+  }
+});
+
 // GET API: Fetch menu items for the website and kiosk
 app.get(['/api/menu', '/api/kiosk/menu'], async (req, res) => {
   try {
-    /* 🌟 FIXED: Unified into a single route handler that joins against 'M_cups' 
-       to bypass the string name/underscore formatting mismatch between tables */
     const query = `
       SELECT m.*, COALESCE(i.supply_qty, 100) as inventory_count 
       FROM menu m
       LEFT JOIN inventory i ON i.supply_name = 'M_cups'
     `;
     const result = await pool.query(query);
-    //res.json(result.rows);
     if (req.path === '/api/kiosk/menu') {
       const drinks = result.rows.filter(
         item =>
@@ -86,7 +205,6 @@ app.post('/api/orders', async (req, res) => {
     const currentTime = new Date();
     const serverName = "Cashier Portal";
     const fallbackPhone = "000-000-0000";
-    
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -233,7 +351,7 @@ app.get('/api/reports/sales-summary', async (req, res) => {
 app.get('/api/reports/sales-by-day', async (req, res) => {
   const { start, end } = reportDateRange(req);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) ||
-      start > end || !Number.isFinite(Date.parse(start)) || !Number.isFinite(Date.parse(end))) {
+    start > end || !Number.isFinite(Date.parse(start)) || !Number.isFinite(Date.parse(end))) {
     return res.status(400).json({ error: 'Please choose a valid date range.' });
   }
   try {
@@ -359,11 +477,13 @@ app.get('/api/reports/inventory', async (_req, res) => {
 
 // Customer kiosk checkout (separate from the cashier endpoint)
 app.post('/api/kiosk/orders', async (req, res) => {
-  const { items, tip = 0, payType } = req.body || {};
+  const { items, tip = 0, payType, discountAmount = 0 } = req.body || {};
   if (!['mobile', 'cash', 'card'].includes(payType)) return res.status(400).json({ error: 'Please select Mobile, Cash, or Card.' });
   if (!Array.isArray(items) || items.length === 0 || items.length > 100) return res.status(400).json({ error: 'Please add a drink.' });
   const tipCents = Math.round(Number(tip) * 100);
   if (!Number.isSafeInteger(tipCents) || tipCents < 0 || tipCents > 100000) return res.status(400).json({ error: 'Invalid tip.' });
+  const rawDiscountCents = Math.max(0, Math.round(Number(discountAmount || 0) * 100));
+
   let client;
   try {
     client = await pool.connect();
@@ -378,7 +498,7 @@ app.post('/api/kiosk/orders', async (req, res) => {
       const size = item.size;
       const rawToppingIds = Array.isArray(item.toppingIds) ? item.toppingIds : (item.toppingId == null ? [] : [item.toppingId]);
       const toppingIds = [...new Set(rawToppingIds.map(Number))];
-      if (!Number.isSafeInteger(drinkId) || drinkId < 1 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100 || !['M','L'].includes(size) || toppingIds.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Error('Invalid drink selection');
+      if (!Number.isSafeInteger(drinkId) || drinkId < 1 || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100 || !['M', 'L'].includes(size) || toppingIds.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Error('Invalid drink selection');
       const drinkResult = await client.query("SELECT item_name, item_cost FROM menu WHERE itemid = $1 AND item_category IN ('base_drink', 'seasonal_drink')", [drinkId]);
       if (!drinkResult.rows.length) throw new Error('Drink not found');
       const drink = drinkResult.rows[0];
@@ -396,22 +516,32 @@ app.post('/api/kiosk/orders', async (req, res) => {
       lines.push({ drinkName: drink.item_name, toppingName, quantity, size, lineSubtotal: lineCents / 100 });
     }
     const taxCents = Math.round(subtotalCents * 0.0825);
-    const totalCents = subtotalCents + taxCents + tipCents;
+    const appliedDiscountCents = Math.min(rawDiscountCents, subtotalCents + taxCents);
+    const totalCents = Math.max(0, subtotalCents + taxCents - appliedDiscountCents + tipCents);
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i], last = i === lines.length - 1;
       await client.query(`INSERT INTO order_history (orderid, item_cost_subtotal, phone_number, pay_type, time, drink_name, topping, item_quantity, item_size, tips, tax, total, server)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-        [orderId, line.lineSubtotal, '000-000-0000', payType, new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents/100 : null, last ? taxCents/100 : null, last ? totalCents/100 : null, 'customer-kiosk']);
+        [orderId, line.lineSubtotal, '000-000-0000', payType, new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents / 100 : null, last ? taxCents / 100 : null, last ? totalCents / 100 : null, 'customer-kiosk']);
     }
     await client.query('COMMIT');
-    res.status(201).json({ success: true, orderId, items: lines, subtotal: subtotalCents/100, tax: taxCents/100, tip: tipCents/100, total: totalCents/100 });
+    res.status(201).json({
+      success: true,
+      orderId,
+      items: lines,
+      subtotal: subtotalCents / 100,
+      tax: taxCents / 100,
+      discountAmount: appliedDiscountCents / 100,
+      tip: tipCents / 100,
+      total: totalCents / 100
+    });
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     console.error('Kiosk order error:', error);
-    res.status(['Invalid drink selection','Drink not found','Topping not found','Invalid price'].includes(error.message) ? 400 : 500).json({ error: ['Invalid drink selection','Drink not found','Topping not found','Invalid price'].includes(error.message) ? error.message : 'Unable to save kiosk order' });
+    res.status(['Invalid drink selection', 'Drink not found', 'Topping not found', 'Invalid price'].includes(error.message) ? 400 : 500).json({ error: ['Invalid drink selection', 'Drink not found', 'Topping not found', 'Invalid price'].includes(error.message) ? error.message : 'Unable to save kiosk order' });
   } finally { if (client) client.release(); }
 });
-
 
 // GET API: List employees for the manager dashboard
 app.get(['/api/employees', '/api/employee', '/api/employees/list', '/api/staff'], async (_req, res) => {
@@ -423,7 +553,6 @@ app.get(['/api/employees', '/api/employee', '/api/employees/list', '/api/staff']
     res.status(500).json({ error: 'Failed to retrieve employees' });
   }
 });
-
 
 // Employee management: add, edit, and delete
 function employeePayload(body) {
@@ -463,12 +592,12 @@ app.post("/api/employees", async (req, res) => {
       `INSERT INTO employees (id, first_name, last_name, role, phone_number, email, user_name)
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, first_name, last_name, role, phone_number, email, user_name`,
       [next.rows[0].id, values.first_name, values.last_name, values.role,
-       values.phone_number, values.email, values.user_name]
+      values.phone_number, values.email, values.user_name]
     );
     await client.query("COMMIT");
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    if (client) await client.query("ROLLBACK").catch(() => {});
+    if (client) await client.query("ROLLBACK").catch(() => { });
     console.error("Employee add failed:", err);
     res.status(500).json({ error: "Failed to add employee." });
   } finally {
@@ -492,7 +621,7 @@ app.put("/api/employees/:id", async (req, res) => {
        email=$5, user_name=$6 WHERE id=$7
        RETURNING id, first_name, last_name, role, phone_number, email, user_name`,
       [values.first_name, values.last_name, values.role, values.phone_number,
-       values.email, values.user_name, id]
+      values.email, values.user_name, id]
     );
     if (!result.rowCount) return res.status(404).json({ error: "Employee not found." });
     res.json(result.rows[0]);
@@ -523,9 +652,10 @@ app.get(/.*/, (_request, response) => {
 
 (async () => {
   try {
+    await ensureRewardsTable();
     await pool.query("SELECT setval('menu_itemid_seq', (SELECT COALESCE(MAX(itemid),0) FROM menu))");
   } catch (err) {
-    console.error('Sequence sync warning:', err.message);
+    console.error('Startup sync warning:', err.message);
   }
   app.listen(port, () => {
     console.log(`Pearl Garden backend server is listening on port ${port}`);

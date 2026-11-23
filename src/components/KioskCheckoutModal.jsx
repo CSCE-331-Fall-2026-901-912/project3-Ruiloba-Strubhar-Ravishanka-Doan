@@ -2,7 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const money = amount => `$${Number(amount).toFixed(2)}`;
 
-export default function KioskCheckoutModal({ order, onClose, onConfirm, submitting }) {
+export default function KioskCheckoutModal({
+  order,
+  discountAmount = 0,
+  onClose,
+  onConfirm,
+  submitting,
+  isHighContrast = false,
+}) {
   const [tipOption, setTipOption] = useState(0);
   const [customTip, setCustomTip] = useState('');
   const [payType, setPayType] = useState('');
@@ -52,8 +59,10 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
     }
   };
 
+  const safeDiscount = Math.max(0, Math.min(order.subtotal + order.tax, Number(discountAmount) || 0));
   const tip = tipOption === 'custom' ? Number(customTip || 0) : Math.round(order.subtotal * tipOption * 100) / 100;
   const valid = Number.isFinite(tip) && tip >= 0 && tip <= 1000;
+  const finalTotal = Math.max(0, order.subtotal + order.tax - safeDiscount + tip);
 
   const pressKey = key => {
     if (submitting) return;
@@ -88,7 +97,7 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
       <section
         ref={modalRef}
         onKeyDown={handleModalKeyDown}
-        className="pg-modal"
+        className={`pg-modal ${isHighContrast ? 'high-contrast' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pg-checkout-title"
@@ -96,7 +105,10 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
         <button ref={closeRef} className="pg-close" type="button" onClick={onClose} disabled={submitting} aria-label="Close checkout">×</button>
         <p className="pg-eyebrow">ALMOST THERE</p>
         <h2 id="pg-checkout-title">Review your Order</h2>
-        <p>{order.count} drink{order.count === 1 ? '' : 's'} · Subtotal {money(order.subtotal)} · Tax {money(order.tax)}</p>
+        <p>
+          {order.count} drink{order.count === 1 ? '' : 's'} · Subtotal {money(order.subtotal)} · Tax {money(order.tax)}
+          {safeDiscount > 0 ? ` · Rewards Discount −${money(safeDiscount)}` : ''}
+        </p>
         <h3 id="pg-tip-heading">Add a tip</h3>
         <div className="pg-tip-options" role="group" aria-labelledby="pg-tip-heading">
           {[0, 0.1, 0.15, 0.2].map(value => (
@@ -157,9 +169,15 @@ export default function KioskCheckoutModal({ order, onClose, onConfirm, submitti
             ))}
           </div>
         </fieldset>
+        {safeDiscount > 0 && (
+          <div className="pg-checkout-discount-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span>Rewards Discount</span>
+            <strong>−{money(safeDiscount)}</strong>
+          </div>
+        )}
         <div className="pg-checkout-total" aria-live="polite">
           <span>Total</span>
-          <strong>{valid ? money(order.subtotal + order.tax + tip) : 'Invalid tip'}</strong>
+          <strong>{valid ? money(finalTotal) : 'Invalid tip'}</strong>
         </div>
         <button
           type="button"

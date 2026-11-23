@@ -1,15 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import KioskDrinkMenu from '../components/KioskDrinkMenu.jsx';
+import useKioskOrder from '../hooks/useKioskOrder.js';
 import KioskCustomizeModal from '../components/KioskCustomizeModal.jsx';
 import KioskTicket from '../components/KioskTicket.jsx';
 import KioskCheckoutModal from '../components/KioskCheckoutModal.jsx';
-import useKioskOrder from '../hooks/useKioskOrder.js';
+import RewardsAuthModal from '../components/RewardsAuthModal.jsx';
+import RewardsBarAndInfo from '../components/RewardsBarAndInfo.jsx';
+
+import {
+  calculateDiscountAmount,
+  calculateEarnedPoints,
+  useRewards,
+} from '../hooks/RewardsContext.jsx';
 import './customer-kiosk.css';
 import './high-contrast-customer-kiosk.css';
+import './rewards.css';
 
 // 1. Accepts 'isHighContrast' and 'setIsHighContrast' as shared incoming props instead of managing a duplicate local state
 export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, fontScale = 1, setFontScale }) {
   const order = useKioskOrder();
+  const {
+    user,
+    points,
+    usedPoints,
+    selectedDiscounts,
+    setSelectedDiscounts,
+    hasDismissedEntryModal,
+    setHasDismissedEntryModal,
+    syncPoints,
+  } = useRewards();
+
   const [drinks, setDrinks] = useState([]);
   const [toppings, setToppings] = useState([]);
   const [category, setCategory] = useState('All drinks');
@@ -21,6 +41,14 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState(null);
+  const [entryAuthOpen, setEntryAuthOpen] = useState(false);
+
+  // Show optional login / create-account popup when entering the customer kiosk
+  useEffect(() => {
+    if (!user && !hasDismissedEntryModal) {
+      setEntryAuthOpen(true);
+    }
+  }, [user, hasDismissedEntryModal]);
 
   useEffect(() => {
     setFontScale?.(1);
@@ -86,18 +114,54 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
     .map(name => drinks.find(drink => drink.item_name?.toLowerCase() === name.toLowerCase()))
     .find(Boolean) || drinks[0];
 
+  const itemsWithUnitPrice = order.items.map(item => ({
+    ...item,
+    unitPrice: order.unitPrice(item),
+  }));
+
+  const discountAmount = user
+    ? Math.min(order.subtotal, calculateDiscountAmount(itemsWithUnitPrice, selectedDiscounts, toppings))
+    : 0;
+
   async function submitOrder(tip, payType) {
     if (submitting) return;
     setSubmitting(true);
     setError('');
     try {
+      const earnedPoints = user ? calculateEarnedPoints(order.items) : 0;
+      const spentPoints = user ? usedPoints : 0;
+
       const response = await fetch('/api/kiosk/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tip, payType, items: order.items.map(item => ({ drinkId: item.drinkId, toppingIds: item.toppingIds, size: item.size, quantity: item.quantity })) }),
+        body: JSON.stringify({
+          tip,
+          payType,
+          discountAmount,
+          rewardsMemberEmail: user?.email ?? null,
+          pointsSpent: spentPoints,
+          pointsEarned: earnedPoints,
+          items: order.items.map(item => ({
+            drinkId: item.drinkId,
+            toppingIds: item.toppingIds,
+            size: item.size,
+            quantity: item.quantity,
+          })),
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save order');
+
+      if (user) {
+        const finalizedPoints = Math.max(0, Math.min(1000, points - spentPoints + earnedPoints));
+        try {
+          await syncPoints(finalizedPoints);
+        } catch (syncErr) {
+          console.error('Could not sync rewards points:', syncErr);
+        }
+        setSelectedDiscounts({});
+      }
+
       const resolvedOrderId =
         data.orderId ??
         data.order_id ??
@@ -107,7 +171,15 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         data.order?.order_id ??
         data.order?.orderid ??
         data.order?.id;
-      setReceipt({ ...data, orderId: resolvedOrderId });
+      const adjustedTotal = Math.max(0, order.subtotal + order.tax - discountAmount + tip);
+      setReceipt({
+        ...data,
+        orderId: resolvedOrderId,
+        total: adjustedTotal,
+        discountAmount,
+        earnedPoints,
+        spentPoints,
+      });
       setCheckoutOpen(false);
       order.clear();
     } catch (err) {
@@ -120,6 +192,16 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
 
   return (
     <main className={`pg-kiosk ${isHighContrast ? 'high-contrast' : ''}`}>
+      <RewardsAuthModal
+        isOpen={entryAuthOpen && !user}
+        allowSkip={true}
+        isHighContrast={isHighContrast}
+        onClose={() => {
+          setEntryAuthOpen(false);
+          setHasDismissedEntryModal(true);
+        }}
+      />
+
       <header className="pg-hero" style={isHighContrast ? { backgroundColor: '#1e003a', borderBottom: '4px solid #ffffff' } : {}}>
         <div>
           <p className="pg-eyebrow" style={isHighContrast ? { color: '#ffb3df', fontWeight: '900' } : {}}>A LITTLE PICK-ME-UP</p>
@@ -165,11 +247,21 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
             </div>
             <p id="pg-receipt-description" className="pg-receipt-summary">
               Order saved · {receipt.items?.length ?? 0} line item(s) · Total ${Number(receipt.total).toFixed(2)}
+              {receipt.discountAmount > 0 ? ` (Saved $${Number(receipt.discountAmount).toFixed(2)})` : ''}
             </p>
+            {user && (
+              <p className="pg-receipt-summary" style={{ marginTop: '4px' }}>
+                Rewards update: +{receipt.earnedPoints ?? 0} pts earned
+                {receipt.spentPoints > 0 ? ` · −${receipt.spentPoints} pts redeemed` : ''}
+              </p>
+            )}
             <button className="pg-receipt-start" type="button" onClick={() => setReceipt(null)} autoFocus>Start Another Order</button>
           </section>
         </div>
       )}
+
+      {/* Point Bar (0 - 1000) and Collapsible Discounts Box above Menu & Ticket */}
+      <RewardsBarAndInfo isHighContrast={isHighContrast} />
 
       <div className="pg-layout">
         <section className="pg-menu-panel">
@@ -193,6 +285,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         </section>
         <KioskTicket
           order={order}
+          discountAmount={discountAmount}
           submitting={submitting}
           isHighContrast={isHighContrast}
           onCheckout={() => setCheckoutOpen(true)}
@@ -234,6 +327,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
       {checkoutOpen && (
         <KioskCheckoutModal
           order={order}
+          discountAmount={discountAmount}
           submitting={submitting}
           isHighContrast={isHighContrast}
           onClose={() => setCheckoutOpen(false)}

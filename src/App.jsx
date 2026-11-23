@@ -6,6 +6,7 @@ import ManagerDashboardPage from "./pages/ManagerDashboardPage.jsx";
 import PortalPage from "./pages/PortalPage.jsx";
 import PageMagnifier from "./components/PageMagnifier.jsx";
 import FontSizeControl from "./components/FontSizeControl.jsx";
+import { RewardsProvider } from "./hooks/RewardsContext.jsx";
 
 const pages = {
   manager: ManagerDashboardPage,
@@ -53,7 +54,7 @@ export default function App() {
   const Page = pages[current] || PortalPage;
 
   return (
-    <>
+    <RewardsProvider>
       <div className={`app app-${current}`} style={{ zoom: String(fontScale) }}>
         {/* 2. Passed isHighContrast prop to the shared Persistent Header Bar */}
         <Header
@@ -104,6 +105,6 @@ export default function App() {
         <PageMagnifier />
         <FontSizeControl scale={fontScale} onScaleChange={setFontScale} />
       </aside>
-    </>
+    </RewardsProvider>
   );
 }
