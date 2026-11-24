@@ -104,6 +104,8 @@ app.post('/api/rewards/auth', async (req, res) => {
       return res.status(400).json({ error: 'Please enter your password.' });
     }
 
+    await ensureRewardsTable();
+
     const existing = await pool.query(
       'SELECT id, email, password, points, created_at FROM rewards_members WHERE LOWER(email) = LOWER($1) LIMIT 1',
       [resolvedEmail]
@@ -111,15 +113,28 @@ app.post('/api/rewards/auth', async (req, res) => {
 
     if (mode === 'signup') {
       if (existing.rowCount > 0) {
-        return res.status(409).json({ error: 'An account with that email already exists. Please log in.' });
+        return res.status(409).json({
+          code: 'email_exists',
+          error: 'This email is already used. Please log in or use a different email address.',
+        });
       }
-      const inserted = await pool.query(
-        `INSERT INTO rewards_members (email, password, points)
-         VALUES ($1, $2, 0)
-         RETURNING id, email, points, created_at`,
-        [resolvedEmail, resolvedPassword]
-      );
-      return res.status(201).json({ user: inserted.rows[0] });
+      try {
+        const inserted = await pool.query(
+          `INSERT INTO rewards_members (email, password, points)
+           VALUES ($1, $2, 0)
+           RETURNING id, email, points, created_at`,
+          [resolvedEmail, resolvedPassword]
+        );
+        return res.status(201).json({ user: inserted.rows[0] });
+      } catch (insertErr) {
+        if (insertErr?.code === '23505') {
+          return res.status(409).json({
+            code: 'email_exists',
+            error: 'This email is already used. Please log in or use a different email address.',
+          });
+        }
+        throw insertErr;
+      }
     }
 
     // Default: login mode
@@ -133,12 +148,18 @@ app.post('/api/rewards/auth', async (req, res) => {
         );
         return res.status(201).json({ user: inserted.rows[0] });
       }
-      return res.status(404).json({ error: 'No rewards account found for that email. Please create an account.' });
+      return res.status(404).json({
+        code: 'email_not_found',
+        error: 'This email does not exist. Please check your email or create a new account.',
+      });
     }
 
     const member = existing.rows[0];
     if (!googleCredential && member.password !== resolvedPassword) {
-      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+      return res.status(401).json({
+        code: 'wrong_password',
+        error: 'Wrong password. Please try again.',
+      });
     }
 
     return res.json({

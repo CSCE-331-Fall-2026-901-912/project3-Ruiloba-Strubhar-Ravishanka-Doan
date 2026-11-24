@@ -430,11 +430,11 @@ export default function ManagerDashboardPage() {
       </div>
 
       <div style={{ display: "flex", gap: "8px", marginBottom: "24px", flexWrap: "wrap" }} role="tablist" aria-label="Dashboard sections">
-          {[
-            { value: "menu", label: "Menu Management" },
-            { value: "reports", label: "Reports" },
-            { value: "employees", label: "Employees" },
-          ].map((tab) => {
+        {[
+          { value: "menu", label: "Menu Management" },
+          { value: "reports", label: "Reports" },
+          { value: "employees", label: "Employees" },
+        ].map((tab) => {
           const selected = activeTab === tab.value;
           return (
             <button
@@ -761,20 +761,20 @@ export default function ManagerDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                   {reportData.payload
-                     .filter((row) => !['kiosk', 'counter'].includes(String(row.payType).toLowerCase()))
-                     .map((row, index) => (
-                       <tr key={index}>
-                         <td style={tdStyle}>{row.payType}</td>
-                         <td style={tdStyle}>{row.orders}</td>
-                         <td style={tdStyle}>{money(row.revenue)}</td>
-                       </tr>
-                     ))}
-                   {reportData.payload.filter((row) => !['kiosk', 'counter'].includes(String(row.payType).toLowerCase())).length === 0 && (
-                     <tr>
-                       <td style={tdStyle} colSpan={3}>No payment data for this range.</td>
-                     </tr>
-                   )}
+                  {reportData.payload
+                    .filter((row) => !['kiosk', 'counter'].includes(String(row.payType).toLowerCase()))
+                    .map((row, index) => (
+                      <tr key={index}>
+                        <td style={tdStyle}>{row.payType}</td>
+                        <td style={tdStyle}>{row.orders}</td>
+                        <td style={tdStyle}>{money(row.revenue)}</td>
+                      </tr>
+                    ))}
+                  {reportData.payload.filter((row) => !['kiosk', 'counter'].includes(String(row.payType).toLowerCase())).length === 0 && (
+                    <tr>
+                      <td style={tdStyle} colSpan={3}>No payment data for this range.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -904,7 +904,7 @@ export default function ManagerDashboardPage() {
         <div
           style={{
             position: "fixed",
-             inset: 0,
+            inset: 0,
             background: "rgba(0,0,0,0.4)",
             display: "flex",
             justifyContent: "center",

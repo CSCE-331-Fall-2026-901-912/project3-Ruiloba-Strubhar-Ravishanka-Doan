@@ -226,7 +226,13 @@ html,
     color: #ffffff !important;
 }
 
-.pg-rewards-auth-modal.high-contrast .pg-alert {
+/* High-contrast WCAG AAA notifications & alert banners across modals & kiosk */
+.pg-kiosk.high-contrast .pg-alert,
+.pg-kiosk.high-contrast [role="alert"],
+.pg-rewards-auth-modal.high-contrast .pg-alert,
+.pg-rewards-auth-modal.high-contrast [role="alert"],
+.pg-use-rewards-modal.high-contrast .pg-alert,
+.pg-use-rewards-modal.high-contrast [role="alert"] {
     background-color: #1e003a !important;
     color: #ffb3df !important;
     border: 3px solid #ffb3df !important;

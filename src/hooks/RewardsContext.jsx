@@ -57,7 +57,6 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
         (toppingsCatalog || []).map(t => [Number(t.itemid), Number(t.item_cost) || 0])
     );
 
-    // Expand line items into individual drink units
     const expandedDrinks = [];
     for (const item of items) {
         const qty = Math.max(0, Number(item.quantity) || 0);
@@ -85,7 +84,6 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
 
     let totalDiscount = 0;
 
-    // 1. Free Drink (100 pts) - cheapest base drink (excluding toppings)
     const freeDrinkCount = Math.min(
         Number(selectedDiscounts.free_drink) || 0,
         expandedDrinks.length
@@ -99,7 +97,6 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
         }
     }
 
-    // 2. Buy 2+ Drinks get one 50% off (75 pts) - 50% off lowest priced drink including toppings
     const maxBogoCount = Math.floor(expandedDrinks.length / 2);
     const bogoCount = Math.min(Number(selectedDiscounts.bogo_50) || 0, maxBogoCount);
     if (bogoCount > 0) {
@@ -111,7 +108,6 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
         }
     }
 
-    // 3. Free Topping (50 pts) - cheapest topping on a drink (1 per drink)
     const drinksWithToppings = expandedDrinks
         .filter(d => d.toppingPrices.length > 0)
         .sort((a, b) => a.toppingPrices[0] - b.toppingPrices[0]);
@@ -123,7 +119,6 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
         totalDiscount += drinksWithToppings[i].toppingPrices[0];
     }
 
-    // 4. Free Size Upgrade to Large (25 pts) - $0.50 off per eligible drink
     const sizeUpgradeCount = Math.min(
         Number(selectedDiscounts.size_upgrade) || 0,
         expandedDrinks.length
@@ -131,6 +126,63 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
     totalDiscount += sizeUpgradeCount * 0.5;
 
     return Math.round(totalDiscount * 100) / 100;
+}
+
+function formatAuthErrorMessage(mode, status, data, rawText = '') {
+    const raw = String(data?.error || data?.message || rawText || '').trim();
+    const code = String(data?.code || '').toLowerCase();
+    const lower = raw.toLowerCase();
+
+    if (mode === 'signup') {
+        if (
+            status === 409 ||
+            code === 'email_exists' ||
+            lower.includes('already exists') ||
+            lower.includes('already used') ||
+            lower.includes('already registered') ||
+            lower.includes('in use') ||
+            lower.includes('duplicate')
+        ) {
+            return 'This email is already used. Please log in or use a different email address.';
+        }
+        return raw || `Unable to create account right now (HTTP ${status}).`;
+    }
+
+    if (
+        status === 404 ||
+        code === 'email_not_found' ||
+        lower.includes('not found') ||
+        lower.includes('does not exist') ||
+        lower.includes('no account') ||
+        lower.includes('unknown email')
+    ) {
+        return 'This email does not exist. Please check your email or create a new account.';
+    }
+
+    if (
+        status === 401 ||
+        code === 'wrong_password' ||
+        code === 'invalid_password' ||
+        lower.includes('wrong password') ||
+        lower.includes('incorrect password') ||
+        lower.includes('invalid password') ||
+        lower.includes('invalid credentials') ||
+        lower.includes('password')
+    ) {
+        return 'Wrong password. Please try again.';
+    }
+
+    return raw || `Unable to sign in right now (HTTP ${status}).`;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 const RewardsContext = createContext(null);
@@ -148,14 +200,33 @@ export function RewardsProvider({ children }) {
     );
 
     async function loginWithForm({ mode = 'login', email, password }) {
-        const response = await fetch('/api/rewards/auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode, email, password }),
-        });
-        const data = await response.json();
+        let response;
+        try {
+            response = await fetchWithTimeout('/api/rewards/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode, email, password }),
+            });
+        } catch (networkErr) {
+            if (networkErr?.name === 'AbortError') {
+                throw new Error('Server request timed out. Please check your backend /api/rewards/auth route.');
+            }
+            throw new Error('Could not reach the server. Please make sure the backend server is running.');
+        }
+
+        const rawText = await response.text();
+        let data = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = {};
+        }
+
         if (!response.ok) {
-            throw new Error(data.error || 'Authentication failed.');
+            throw new Error(formatAuthErrorMessage(mode, response.status, data, rawText));
+        }
+        if (!data?.user) {
+            throw new Error('Server did not return account details. Please check the backend /api/rewards/auth route.');
         }
         setUser(data.user);
         setSelectedDiscounts({});
@@ -163,14 +234,33 @@ export function RewardsProvider({ children }) {
     }
 
     async function loginWithGoogleToken(googleCredential) {
-        const response = await fetch('/api/rewards/auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode: 'login', googleCredential }),
-        });
-        const data = await response.json();
+        let response;
+        try {
+            response = await fetchWithTimeout('/api/rewards/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: 'login', googleCredential }),
+            });
+        } catch (networkErr) {
+            if (networkErr?.name === 'AbortError') {
+                throw new Error('Google sign-in request timed out. Please try again.');
+            }
+            throw new Error('Could not reach the server. Please make sure the backend server is running.');
+        }
+
+        const rawText = await response.text();
+        let data = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+            data = {};
+        }
+
         if (!response.ok) {
-            throw new Error(data.error || 'Google authentication failed.');
+            throw new Error(formatAuthErrorMessage('login', response.status, data, rawText));
+        }
+        if (!data?.user) {
+            throw new Error('Google sign-in failed: server did not return account details.');
         }
         setUser(data.user);
         setSelectedDiscounts({});

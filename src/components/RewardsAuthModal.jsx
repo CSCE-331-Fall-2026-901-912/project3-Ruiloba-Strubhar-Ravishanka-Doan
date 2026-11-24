@@ -23,6 +23,7 @@ export default function RewardsAuthModal({
 
     const modalRef = useRef(null);
     const loginTabRef = useRef(null);
+    const errorRef = useRef(null);
 
     // Fetch GOOGLE_CLIENT_ID from backend config with retry in case Express starts slightly after Vite
     useEffect(() => {
@@ -58,6 +59,7 @@ export default function RewardsAuthModal({
         };
     }, [isOpen, googleClientId]);
 
+    // Only run initial focus & clear error when modal transitions from closed -> open
     useEffect(() => {
         if (!isOpen) return undefined;
         const previouslyFocused = document.activeElement;
@@ -66,20 +68,32 @@ export default function RewardsAuthModal({
             loginTabRef.current?.focus();
         }, 30);
 
+        return () => {
+            clearTimeout(timer);
+            if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+                previouslyFocused.focus();
+            }
+        };
+    }, [isOpen]);
+
+    // Escape key listener (does NOT reset error when submitting toggles!)
+    useEffect(() => {
+        if (!isOpen) return undefined;
         const handleKey = event => {
             if (event.key === 'Escape' && !submitting) {
                 onClose();
             }
         };
         window.addEventListener('keydown', handleKey);
-        return () => {
-            clearTimeout(timer);
-            window.removeEventListener('keydown', handleKey);
-            if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
-                previouslyFocused.focus();
-            }
-        };
+        return () => window.removeEventListener('keydown', handleKey);
     }, [isOpen, onClose, submitting]);
+
+    // Scroll alert into view whenever an error message is set
+    useEffect(() => {
+        if (error && errorRef.current) {
+            errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, [error]);
 
     const handleModalKeyDown = event => {
         if (event.key !== 'Tab' || !modalRef.current) return;
@@ -106,15 +120,24 @@ export default function RewardsAuthModal({
     async function handleSubmit(event) {
         event.preventDefault();
         if (submitting) return;
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
+            setError('Please enter your email address.');
+            return;
+        }
+        if (!password) {
+            setError('Please enter your password.');
+            return;
+        }
         setSubmitting(true);
         setError('');
         try {
-            await loginWithForm({ mode, email, password });
+            await loginWithForm({ mode, email: trimmedEmail, password });
             setEmail('');
             setPassword('');
             onClose();
         } catch (err) {
-            setError(err.message || 'Unable to sign in right now.');
+            setError(err?.message || 'Unable to sign in right now.');
         } finally {
             setSubmitting(false);
         }
@@ -128,7 +151,7 @@ export default function RewardsAuthModal({
             await loginWithGoogleToken(credential);
             onClose();
         } catch (err) {
-            setError(err.message || 'Google sign-in failed.');
+            setError(err?.message || 'Google sign-in failed.');
         } finally {
             setSubmitting(false);
         }
@@ -152,6 +175,34 @@ export default function RewardsAuthModal({
                 borderRadius: '8px',
                 boxShadow: isSelected ? '0 3px 8px rgba(87, 38, 73, 0.25)' : 'none',
             };
+
+    const alertStyle = isHighContrast
+        ? {
+            display: 'block',
+            backgroundColor: '#1e003a',
+            color: '#ffb3df',
+            border: '3px solid #ffb3df',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            margin: '12px 0',
+            fontSize: '19px',
+            fontWeight: '900',
+            lineHeight: '1.4',
+            textAlign: 'left',
+        }
+        : {
+            display: 'block',
+            backgroundColor: '#fff5f7',
+            color: '#7a0924',
+            border: '2px solid #9e1232',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            margin: '12px 0',
+            fontSize: '18px',
+            fontWeight: '800',
+            lineHeight: '1.4',
+            textAlign: 'left',
+        };
 
     return (
         <div
@@ -301,8 +352,14 @@ export default function RewardsAuthModal({
                     </div>
 
                     {error && (
-                        <div className="pg-alert pg-rewards-auth-error" role="alert">
-                            {error}
+                        <div
+                            ref={errorRef}
+                            className="pg-alert pg-rewards-auth-error"
+                            role="alert"
+                            aria-live="assertive"
+                            style={alertStyle}
+                        >
+                            ⚠ {error}
                         </div>
                     )}
 
