@@ -30,7 +30,14 @@ html,
 .pg-kiosk.high-contrast strong,
 .pg-kiosk.high-contrast span,
 .pg-kiosk.high-contrast p,
-.pg-kiosk.high-contrast label {
+.pg-kiosk.high-contrast label,
+.pg-rewards-auth-modal.high-contrast h1,
+.pg-rewards-auth-modal.high-contrast h2,
+.pg-rewards-auth-modal.high-contrast h3,
+.pg-rewards-auth-modal.high-contrast strong,
+.pg-rewards-auth-modal.high-contrast span,
+.pg-rewards-auth-modal.high-contrast p,
+.pg-rewards-auth-modal.high-contrast label {
     color: #ffffff !important;
     font-weight: 800 !important;
     text-shadow: none !important;
@@ -39,7 +46,10 @@ html,
 /* Faint category sub-labels / eyebrows using sharp contrast pink */
 .pg-kiosk.high-contrast .pg-eyebrow,
 .pg-kiosk.high-contrast [class*="eyebrow"],
-.pg-kiosk.high-contrast [class*="subtitle"] {
+.pg-kiosk.high-contrast [class*="subtitle"],
+.pg-rewards-auth-modal.high-contrast .pg-eyebrow,
+.pg-rewards-auth-modal.high-contrast [class*="eyebrow"],
+.pg-rewards-auth-modal.high-contrast [class*="subtitle"] {
     color: #ffb3df !important;
     font-weight: 900 !important;
 }
@@ -49,7 +59,11 @@ html,
 .pg-kiosk.high-contrast input,
 .pg-kiosk.high-contrast select,
 .pg-kiosk.high-contrast [role="button"],
-.pg-kiosk.high-contrast .pg-menu-panel button {
+.pg-kiosk.high-contrast .pg-menu-panel button,
+.pg-rewards-auth-modal.high-contrast button,
+.pg-rewards-auth-modal.high-contrast input,
+.pg-rewards-auth-modal.high-contrast select,
+.pg-rewards-auth-modal.high-contrast [role="button"] {
     background-color: #1e003a !important;
     color: #ffffff !important;
     border: 3px solid #ffffff !important;
@@ -57,13 +71,23 @@ html,
     border-radius: 4px !important;
 }
 
-/* Selected Tab Filter States */
+.pg-rewards-auth-modal.high-contrast input::placeholder {
+    color: #ffb3df !important;
+    opacity: 1 !important;
+}
+
+/* Selected Tab Filter States & Primary Submit Buttons */
 .pg-kiosk.high-contrast button.active,
 .pg-kiosk.high-contrast [class*="active"],
-.pg-kiosk.high-contrast [aria-selected="true"] {
+.pg-kiosk.high-contrast [aria-selected="true"],
+.pg-rewards-auth-modal.high-contrast button.active,
+.pg-rewards-auth-modal.high-contrast [class*="active"],
+.pg-rewards-auth-modal.high-contrast [aria-selected="true"],
+.pg-rewards-auth-modal.high-contrast button.pg-primary {
     background-color: #ffffff !important;
     color: #120024 !important;
     border: 3px solid #ffb3df !important;
+    font-weight: 950 !important;
 }
 
 /* Main panel blocks */
@@ -108,7 +132,7 @@ html,
 
 /* ==========================================================================
    COLOR CORRECTIONS & TYPOGRAPHY SELECTORS
-   ========================================================================= */
+   ========================================================================== */
 
 /* Keep regular running totals readable on dark violet templates */
 .pg-kiosk.high-contrast .pg-ticket-line-price,
@@ -128,6 +152,23 @@ html,
     /* Force explicit dark text inside capsule layout */
     background-color: #ffffff !important;
     font-weight: 900 !important;
+}
+
+/* --------------------------------------------------------------------------
+   WCAG AAA FIX: Rewards Pill Badges (Cost Pills, Member Badge, Selected Tag)
+   Prevents global `.pg-kiosk.high-contrast span` rule from forcing white text
+   onto white/pink pill backgrounds.
+   -------------------------------------------------------------------------- */
+.pg-kiosk.high-contrast .pg-rewards-member-badge,
+.pg-kiosk.high-contrast .pg-rewards-cost-pill,
+.pg-kiosk.high-contrast .pg-reward-cost-badge,
+.pg-kiosk.high-contrast .pg-reward-selected-tag,
+.pg-rewards-banner.high-contrast .pg-rewards-member-badge,
+.pg-rewards-banner.high-contrast .pg-rewards-cost-pill,
+.pg-use-rewards-modal.high-contrast .pg-reward-cost-badge,
+.pg-use-rewards-modal.high-contrast .pg-reward-selected-tag {
+    color: #120024 !important;
+    font-weight: 950 !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -173,13 +214,23 @@ html,
     text-decoration: underline !important;
 }
 
-/* Overriding Modal Popups (Fixes Customize and Checkout overlays) */
+/* Overriding Modal Popups (Fixes Customize, Checkout, and Login Auth overlays) */
 .pg-kiosk.high-contrast [class*="modal"],
 .pg-kiosk.high-contrast [class*="overlay"],
 .pg-kiosk.high-contrast [class*="popup"],
-.pg-kiosk.high-contrast [role="dialog"] {
+.pg-kiosk.high-contrast [role="dialog"],
+.pg-rewards-auth-modal.high-contrast {
     background-color: #120024 !important;
+    background: #120024 !important;
     border: 5px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+.pg-rewards-auth-modal.high-contrast .pg-alert {
+    background-color: #1e003a !important;
+    color: #ffb3df !important;
+    border: 3px solid #ffb3df !important;
+    font-weight: 900 !important;
 }
 
 /* ==========================================================================

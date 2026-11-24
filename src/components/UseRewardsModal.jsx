@@ -12,11 +12,18 @@ export default function UseRewardsModal({
 
     const modalRef = useRef(null);
     const closeRef = useRef(null);
+    const wasOpenRef = useRef(false);
+
+    useEffect(() => {
+        if (isOpen && !wasOpenRef.current) {
+            setDraftCounts({ ...selectedDiscounts });
+            setNotice("");
+        }
+        wasOpenRef.current = isOpen;
+    }, [isOpen, selectedDiscounts]);
 
     useEffect(() => {
         if (!isOpen) return;
-        setDraftCounts({ ...selectedDiscounts });
-        setNotice("");
 
         const previouslyFocused = document.activeElement;
         const timer = setTimeout(() => {
@@ -37,7 +44,7 @@ export default function UseRewardsModal({
                 previouslyFocused.focus();
             }
         };
-    }, [isOpen, selectedDiscounts, onClose]);
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -127,6 +134,7 @@ export default function UseRewardsModal({
                     className="pg-close"
                     onClick={onClose}
                     aria-label="Close rewards selector"
+                    style={{ fontSize: "24px" }}
                 >
                     ×
                 </button>
@@ -147,26 +155,33 @@ export default function UseRewardsModal({
                     <div>
                         <p
                             className="pg-eyebrow"
-                            style={isHighContrast ? { color: "#ffb3df", fontWeight: "900" } : {}}
+                            style={{
+                                fontSize: "26px",
+                                ...(isHighContrast ? { color: "#ffb3df", fontWeight: "900" } : {}),
+                            }}
                         >
                             REDEEM REWARDS
                         </p>
                         <h2
                             id="pg-use-rewards-title"
-                            style={isHighContrast ? { color: "#ffffff", fontWeight: "950" } : {}}
+                            style={{
+                                fontSize: "28px",
+                                ...(isHighContrast ? { color: "#ffffff", fontWeight: "950" } : {}),
+                            }}
                         >
                             Available Points: <span>{remainingPoints}</span>{" "}
-                            <small>(of {points} pts)</small>
+                            <small style={{ fontSize: "22px" }}>(of {points} pts)</small>
                         </h2>
                     </div>
                     {totalDraftCost > 0 && (
                         <span
                             className="pg-use-rewards-spent"
-                            style={
-                                isHighContrast
+                            style={{
+                                fontSize: "22px",
+                                ...(isHighContrast
                                     ? { color: "#ffb3df", fontWeight: "900" }
-                                    : {}
-                            }
+                                    : {}),
+                            }}
                         >
                             −{totalDraftCost} pts selected
                         </span>
@@ -174,7 +189,21 @@ export default function UseRewardsModal({
                 </div>
 
                 {notice && (
-                    <div className="pg-alert pg-rewards-insufficient-alert" role="alert">
+                    <div
+                        className="pg-alert pg-rewards-insufficient-alert"
+                        role="alert"
+                        style={{
+                            fontSize: "20px",
+                            ...(isHighContrast
+                                ? {
+                                    backgroundColor: "#2e0057",
+                                    color: "#ffffff",
+                                    border: "3px solid #ffb3df",
+                                    fontWeight: "900",
+                                }
+                                : {}),
+                        }}
+                    >
                         {notice}
                     </div>
                 )}
@@ -220,46 +249,54 @@ export default function UseRewardsModal({
                                     <div className="pg-reward-option-header">
                                         <span
                                             className="pg-reward-cost-badge"
-                                            style={
-                                                isHighContrast
+                                            style={{
+                                                fontSize: "19px",
+                                                ...(isHighContrast
                                                     ? {
                                                         backgroundColor: isSelected ? "#ffb3df" : "#ffffff",
                                                         color: "#120024",
                                                         fontWeight: "950",
                                                     }
-                                                    : {}
-                                            }
+                                                    : {}),
+                                            }}
                                         >
                                             {discount.cost} pts
                                         </span>
                                         <strong
-                                            style={
-                                                isHighContrast
+                                            style={{
+                                                fontSize: "22px",
+                                                ...(isHighContrast
                                                     ? { color: isSelected ? "#ffb3df" : "#ffffff", fontWeight: "900" }
-                                                    : {}
-                                            }
+                                                    : {}),
+                                            }}
                                         >
                                             {discount.name}
                                         </strong>
                                         {isSelected && (
                                             <span
                                                 className="pg-reward-selected-tag"
-                                                style={
-                                                    isHighContrast
+                                                style={{
+                                                    fontSize: "18px",
+                                                    ...(isHighContrast
                                                         ? {
                                                             backgroundColor: "#ffffff",
                                                             color: "#120024",
                                                             fontWeight: "950",
                                                         }
-                                                        : {}
-                                                }
+                                                        : {}),
+                                                }}
                                             >
                                                 ✓ Selected ({count})
                                             </span>
                                         )}
                                     </div>
                                     <small
-                                        style={isHighContrast ? { color: "#ffffff", fontWeight: "700" } : {}}
+                                        style={{
+                                            fontSize: "18px",
+                                            display: "block",
+                                            marginTop: "6px",
+                                            ...(isHighContrast ? { color: "#ffffff", fontWeight: "700" } : {}),
+                                        }}
                                     >
                                         {discount.description}
                                     </small>
@@ -276,25 +313,27 @@ export default function UseRewardsModal({
                                         aria-label={`Decrease ${discount.name} count`}
                                         disabled={count === 0}
                                         onClick={() => handleDecrement(discount)}
-                                        style={
-                                            isHighContrast
+                                        style={{
+                                            fontSize: "22px",
+                                            ...(isHighContrast
                                                 ? {
                                                     backgroundColor: "#120024",
                                                     color: "#ffffff",
                                                     border: "2px solid #ffffff",
                                                 }
-                                                : {}
-                                        }
+                                                : {}),
+                                        }}
                                     >
                                         −
                                     </button>
                                     <span
                                         aria-live="polite"
-                                        style={
-                                            isHighContrast
+                                        style={{
+                                            fontSize: "22px",
+                                            ...(isHighContrast
                                                 ? { color: "#ffffff", fontWeight: "950" }
-                                                : {}
-                                        }
+                                                : {}),
+                                        }}
                                     >
                                         {count}
                                     </span>
@@ -303,18 +342,17 @@ export default function UseRewardsModal({
                                         aria-label={`Increase ${discount.name} count`}
                                         aria-disabled={!canAffordMore}
                                         onClick={() => handleIncrement(discount)}
-                                        style={
-                                            isHighContrast
+                                        style={{
+                                            fontSize: "22px",
+                                            opacity: canAffordMore ? 1 : 0.55,
+                                            ...(isHighContrast
                                                 ? {
                                                     backgroundColor: "#120024",
                                                     color: "#ffffff",
                                                     border: "2px solid #ffffff",
-                                                    opacity: canAffordMore ? 1 : 0.55,
                                                 }
-                                                : {
-                                                    opacity: canAffordMore ? 1 : 0.55,
-                                                }
-                                        }
+                                                : {}),
+                                        }}
                                     >
                                         +
                                     </button>
@@ -329,16 +367,17 @@ export default function UseRewardsModal({
                         type="button"
                         className="pg-rewards-cancel-btn"
                         onClick={onClose}
-                        style={
-                            isHighContrast
+                        style={{
+                            fontSize: "22px",
+                            ...(isHighContrast
                                 ? {
                                     backgroundColor: "#1e003a",
                                     color: "#ffffff",
                                     border: "3px solid #ffffff",
                                     fontWeight: "900",
                                 }
-                                : {}
-                        }
+                                : {}),
+                        }}
                     >
                         Cancel
                     </button>
@@ -346,16 +385,17 @@ export default function UseRewardsModal({
                         type="button"
                         className="pg-primary"
                         onClick={handleApply}
-                        style={
-                            isHighContrast
+                        style={{
+                            fontSize: "22px",
+                            ...(isHighContrast
                                 ? {
                                     backgroundColor: "#ffffff",
                                     color: "#120024",
                                     border: "3px solid #ffb3df",
                                     fontWeight: "950",
                                 }
-                                : {}
-                        }
+                                : {}),
+                        }}
                     >
                         Apply
                     </button>

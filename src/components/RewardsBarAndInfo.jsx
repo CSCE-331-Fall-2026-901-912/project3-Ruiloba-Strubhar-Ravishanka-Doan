@@ -27,10 +27,14 @@ export default function RewardsBarAndInfo({ isHighContrast = false }) {
                 <div>
                     <p
                         className="pg-eyebrow"
-                        style={isHighContrast ? { color: "#ffb3df", fontWeight: "900" } : {}}
+                        style={{
+                            fontSize: "26px",
+                            ...(isHighContrast ? { color: "#ffb3df", fontWeight: "900" } : {})
+                        }}
                     >
                         PEARL GARDEN REWARDS
                     </p>
+
                     <h2
                         className="pg-rewards-points-heading"
                         style={isHighContrast ? { color: "#ffffff", fontWeight: "950" } : {}}
@@ -84,13 +88,18 @@ export default function RewardsBarAndInfo({ isHighContrast = false }) {
                 />
             </div>
 
-            <div className="pg-rewards-scale-labels" aria-hidden="true">
+            <div
+                className="pg-rewards-scale-labels"
+                aria-hidden="true"
+                style={{ fontSize: "20px" }}
+            >
                 <span>0 pts</span>
                 <span>250 pts</span>
                 <span>500 pts</span>
                 <span>750 pts</span>
                 <span>1,000 pts</span>
             </div>
+
 
             {/* Collapsible Box Below Point Bar (starts open by default) */}
             <div
@@ -107,10 +116,14 @@ export default function RewardsBarAndInfo({ isHighContrast = false }) {
                 <div className="pg-rewards-info-header">
                     <div>
                         <strong
-                            style={isHighContrast ? { color: "#ffffff", fontWeight: "900" } : {}}
+                            style={{
+                                fontSize: "20px",
+                                ...(isHighContrast ? { color: "#ffffff", fontWeight: "900" } : {})
+                            }}
                         >
-                            Available Rewards Discounts
+                            Offered Rewards Discounts
                         </strong>
+
                         <p
                             className="pg-rewards-info-note"
                             style={isHighContrast ? { color: "#ffb3df", fontWeight: "800" } : {}}

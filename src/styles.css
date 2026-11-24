@@ -1602,3 +1602,40 @@ body {
   outline: 3px solid #ffb3df !important;
   outline-offset: -2px;
 }
+
+
+
+/* WCAG 2.1 / 2.2 Compliant Keyboard Focus Ring for all buttons and interactive controls */
+button:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 4px solid #ffb3df !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px #120024, 0 0 14px rgba(255, 179, 223, 0.85) !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* Standard (Light) Mode Focus Ring */
+body:not(.high-contrast) button:focus-visible,
+body:not(.high-contrast) [role="button"]:focus-visible,
+body:not(.high-contrast) [role="tab"]:focus-visible {
+  outline: 4px solid #572649 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px #ffffff, 0 0 12px rgba(87, 38, 73, 0.5) !important;
+}
+
+/* High Contrast Mode Focus Ring (Yellow/Pink Dual Ring on Dark Purple) */
+.high-contrast button:focus-visible,
+.high-contrast [role="button"]:focus-visible,
+.high-contrast [role="tab"]:focus-visible {
+  outline: 4px solid #ffe600 !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 7px #120024 !important;
+  background-color: #3d0075 !important;
+  color: #ffffff !important;
+}

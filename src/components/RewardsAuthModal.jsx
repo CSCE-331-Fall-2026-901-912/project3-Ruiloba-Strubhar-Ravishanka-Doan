@@ -22,7 +22,7 @@ export default function RewardsAuthModal({
     );
 
     const modalRef = useRef(null);
-    const firstInputRef = useRef(null);
+    const loginTabRef = useRef(null);
 
     // Fetch GOOGLE_CLIENT_ID from backend config with retry in case Express starts slightly after Vite
     useEffect(() => {
@@ -63,7 +63,7 @@ export default function RewardsAuthModal({
         const previouslyFocused = document.activeElement;
         setError('');
         const timer = setTimeout(() => {
-            firstInputRef.current?.focus();
+            loginTabRef.current?.focus();
         }, 30);
 
         const handleKey = event => {
@@ -134,6 +134,25 @@ export default function RewardsAuthModal({
         }
     }
 
+    const getNormalTabStyle = (isSelected, minWidth) =>
+        isHighContrast
+            ? {
+                padding: '10px 24px',
+                fontSize: '1.05rem',
+                minWidth,
+            }
+            : {
+                padding: '10px 24px',
+                fontSize: '1.05rem',
+                minWidth,
+                backgroundColor: isSelected ? '#572649' : '#ffffff',
+                color: isSelected ? '#ffffff' : '#3a1530',
+                border: isSelected ? '3px solid #3a1530' : '2px solid #765c6f',
+                fontWeight: isSelected ? '800' : '600',
+                borderRadius: '8px',
+                boxShadow: isSelected ? '0 3px 8px rgba(87, 38, 73, 0.25)' : 'none',
+            };
+
     return (
         <div
             className="pg-modal-backdrop pg-rewards-auth-backdrop"
@@ -148,6 +167,13 @@ export default function RewardsAuthModal({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="pg-rewards-auth-title"
+                style={{
+                    position: 'relative',
+                    width: 'min(94vw, 640px)',
+                    maxWidth: '640px',
+                    boxSizing: 'border-box',
+                    overflowX: 'hidden',
+                }}
             >
                 <button
                     className="pg-close"
@@ -155,24 +181,48 @@ export default function RewardsAuthModal({
                     onClick={onClose}
                     disabled={submitting}
                     aria-label="Close rewards sign in dialog"
+                    style={{
+                        position: 'absolute',
+                        top: '16px',
+                        right: '16px',
+                        left: 'auto',
+                        margin: 0,
+                    }}
                 >
                     ×
                 </button>
 
-                <p className="pg-eyebrow">PEARL GARDEN REWARDS</p>
-                <h2 id="pg-rewards-auth-title">
+                <p className="pg-eyebrow" style={{ fontSize: "20px" }}>
+                    PEARL GARDEN REWARDS
+                </p>
+
+                <h2 id="pg-rewards-auth-title" style={{ textAlign: 'center' }}>
                     {mode === 'login' ? 'Log In to Earn & Use Points' : 'Create Your Rewards Account'}
                 </h2>
-                <p className="pg-rewards-auth-subtitle">
+                <p className="pg-rewards-auth-subtitle" style={{ textIndent: '2em' }}>
                     Sign in with Google or your Google email and password to earn points on every drink and topping, and redeem rewards at checkout.
                 </p>
 
-                <div className="pg-rewards-auth-tabs" role="tablist" aria-label="Account options">
+                <div
+                    className="pg-rewards-auth-tabs"
+                    role="tablist"
+                    aria-label="Account options"
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '14px',
+                        margin: '16px 0',
+                    }}
+                >
                     <button
+                        ref={loginTabRef}
                         type="button"
                         role="tab"
                         aria-selected={mode === 'login'}
                         className={mode === 'login' ? 'active' : ''}
+                        style={{ ...getNormalTabStyle(mode === 'login', '140px'), fontSize: '20px' }}
                         onClick={() => {
                             setMode('login');
                             setError('');
@@ -185,6 +235,7 @@ export default function RewardsAuthModal({
                         role="tab"
                         aria-selected={mode === 'signup'}
                         className={mode === 'signup' ? 'active' : ''}
+                        style={{ ...getNormalTabStyle(mode === 'signup', '160px'), fontSize: '20px' }}
                         onClick={() => {
                             setMode('signup');
                             setError('');
@@ -194,19 +245,34 @@ export default function RewardsAuthModal({
                     </button>
                 </div>
 
-                <div className="pg-rewards-google-wrap" style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
-                    <GoogleSignInButton
-                        clientId={googleClientId}
-                        onCredential={handleGoogleCredential}
-                        onError={msg => setError(msg)}
-                    />
+                <div
+                    className="pg-rewards-google-wrap"
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        width: '100%',
+                        overflow: 'hidden',
+                        margin: '18px 0 22px',
+                    }}
+                >
+                    <div
+                        style={{
+                            transform: 'scale(1.25)',
+                            transformOrigin: 'center',
+                        }}
+                    >
+                        <GoogleSignInButton
+                            clientId={googleClientId}
+                            onCredential={handleGoogleCredential}
+                            onError={msg => setError(msg)}
+                        />
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="pg-rewards-auth-form" noValidate>
                     <div className="pg-rewards-field">
                         <label htmlFor="pg-rewards-email">Google Email Address</label>
                         <input
-                            ref={firstInputRef}
                             id="pg-rewards-email"
                             type="email"
                             autoComplete="email"
@@ -215,6 +281,7 @@ export default function RewardsAuthModal({
                             value={email}
                             disabled={submitting}
                             onChange={e => setEmail(e.target.value)}
+                            style={{ width: '100%', boxSizing: 'border-box' }}
                         />
                     </div>
 
@@ -229,6 +296,7 @@ export default function RewardsAuthModal({
                             value={password}
                             disabled={submitting}
                             onChange={e => setPassword(e.target.value)}
+                            style={{ width: '100%', boxSizing: 'border-box' }}
                         />
                     </div>
 
@@ -242,6 +310,7 @@ export default function RewardsAuthModal({
                         <button
                             type="submit"
                             className="pg-primary"
+                            style={{ fontSize: "24px", width: '100%', boxSizing: 'border-box' }}
                             disabled={submitting}
                         >
                             {submitting
@@ -255,6 +324,7 @@ export default function RewardsAuthModal({
                             <button
                                 type="button"
                                 className="pg-rewards-skip-btn"
+                                style={{ fontSize: "26px", fontWeight: "bold", width: '100%', boxSizing: 'border-box' }}
                                 disabled={submitting}
                                 onClick={onClose}
                             >
