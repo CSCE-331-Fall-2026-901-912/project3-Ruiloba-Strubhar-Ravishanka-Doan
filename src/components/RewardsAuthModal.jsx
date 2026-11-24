@@ -14,14 +14,49 @@ export default function RewardsAuthModal({
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [googleClientId, setGoogleClientId] = useState(
+        () =>
+            import.meta.env?.VITE_GOOGLE_CLIENT_ID ||
+            window.__GOOGLE_CLIENT_ID__ ||
+            ''
+    );
 
     const modalRef = useRef(null);
     const firstInputRef = useRef(null);
 
-    const googleClientId =
-        import.meta.env?.VITE_GOOGLE_CLIENT_ID ||
-        window.__GOOGLE_CLIENT_ID__ ||
-        '';
+    // Fetch GOOGLE_CLIENT_ID from backend config with retry in case Express starts slightly after Vite
+    useEffect(() => {
+        if (!isOpen || googleClientId) return undefined;
+        let active = true;
+        let attempt = 0;
+        let retryTimer = null;
+
+        const loadConfig = () => {
+            fetch('/api/rewards/config')
+                .then(res => (res.ok ? res.json() : Promise.reject(new Error('Config unavailable'))))
+                .then(data => {
+                    if (!active) return;
+                    if (data?.googleClientId) {
+                        setGoogleClientId(data.googleClientId);
+                    } else if (attempt < 5) {
+                        attempt += 1;
+                        retryTimer = setTimeout(loadConfig, 800);
+                    }
+                })
+                .catch(() => {
+                    if (active && attempt < 5) {
+                        attempt += 1;
+                        retryTimer = setTimeout(loadConfig, 800);
+                    }
+                });
+        };
+
+        loadConfig();
+        return () => {
+            active = false;
+            if (retryTimer) clearTimeout(retryTimer);
+        };
+    }, [isOpen, googleClientId]);
 
     useEffect(() => {
         if (!isOpen) return undefined;
@@ -129,7 +164,7 @@ export default function RewardsAuthModal({
                     {mode === 'login' ? 'Log In to Earn & Use Points' : 'Create Your Rewards Account'}
                 </h2>
                 <p className="pg-rewards-auth-subtitle">
-                    Sign in with your Google email and password to earn points on every drink and topping, and redeem rewards at checkout.
+                    Sign in with Google or your Google email and password to earn points on every drink and topping, and redeem rewards at checkout.
                 </p>
 
                 <div className="pg-rewards-auth-tabs" role="tablist" aria-label="Account options">

@@ -1,21 +1,40 @@
-import 'dotenv/config';
+import fs from "node:fs";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pkg from 'pg';
-import { OAuth2Client } from 'google-auth-library';
-import { SignJWT, jwtVerify } from 'jose';
 const { Pool } = pkg;
 
 const app = express();
 const port = process.env.PORT || 3000;
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const buildDirectory = path.join(currentDirectory, "dist");
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const sessionSecret = new TextEncoder().encode(process.env.SESSION_SECRET || '');
-const sessionCookieName = 'pg_customer_session';
-const sessionLifetimeSeconds = 30 * 60;
-const googleClient = new OAuth2Client();
+
+// Load .env variables using built-in Node fs (no external dotenv package needed)
+try {
+  const envPath = path.join(currentDirectory, ".env");
+  if (fs.existsSync(envPath)) {
+    const envLines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
+    for (const line of envLines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let val = trimmed.slice(eqIdx + 1).trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      if (!process.env[key]) {
+        process.env[key] = val;
+      }
+    }
+  }
+} catch (envErr) {
+  console.error("Env file read warning:", envErr.message);
+}
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
 
 app.use(express.json());
 
@@ -49,6 +68,11 @@ app.get("/api/health", (_request, response) => {
   response.json({ status: "ok" });
 });
 
+// GET API: Expose public Google Client ID to frontend rewards sign-in modal
+app.get('/api/rewards/config', (_req, res) => {
+  res.json({ googleClientId });
+});
+
 // POST API: Rewards member login or account creation
 app.post('/api/rewards/auth', async (req, res) => {
   const { mode = 'login', email, password, googleCredential } = req.body || {};
@@ -63,8 +87,11 @@ app.post('/api/rewards/auth', async (req, res) => {
         return res.status(401).json({ error: 'Invalid Google authentication token.' });
       }
       const tokenInfo = await tokenRes.json();
-      if (!tokenInfo.email) {
+      if (!tokenInfo?.email) {
         return res.status(400).json({ error: 'Google account did not provide an email address.' });
+      }
+      if (googleClientId && tokenInfo.aud && tokenInfo.aud !== googleClientId) {
+        return res.status(401).json({ error: 'Google token audience mismatch.' });
       }
       resolvedEmail = String(tokenInfo.email).trim().toLowerCase();
       resolvedPassword = resolvedPassword || `google_oauth_${tokenInfo.sub || resolvedEmail}`;
@@ -533,12 +560,6 @@ app.post('/api/kiosk/orders', async (req, res) => {
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [orderId, line.lineSubtotal, '000-000-0000', payType, new Date(), line.drinkName, line.toppingName, line.quantity, line.size, last ? tipCents / 100 : null, last ? taxCents / 100 : null, last ? totalCents / 100 : null, 'customer-kiosk']);
     }
-    if (customerSubject) {
-      await client.query(
-        'INSERT INTO customer_order_links (google_sub, order_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [customerSubject, orderId]
-      );
-    }
     await client.query('COMMIT');
     res.status(201).json({
       success: true,
@@ -600,7 +621,6 @@ app.post("/api/employees", async (req, res) => {
       await client.query("ROLLBACK");
       return res.status(409).json({ error: "That username is already in use." });
     }
-    // Explicit ID supports existing tables without a configured ID sequence.
     const next = await client.query("SELECT COALESCE(MAX(id), 0) + 1 AS id FROM employees");
     const result = await client.query(
       `INSERT INTO employees (id, first_name, last_name, role, phone_number, email, user_name)

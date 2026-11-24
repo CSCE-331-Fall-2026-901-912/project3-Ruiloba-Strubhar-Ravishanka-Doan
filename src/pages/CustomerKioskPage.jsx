@@ -6,7 +6,6 @@ import KioskTicket from '../components/KioskTicket.jsx';
 import KioskCheckoutModal from '../components/KioskCheckoutModal.jsx';
 import RewardsAuthModal from '../components/RewardsAuthModal.jsx';
 import RewardsBarAndInfo from '../components/RewardsBarAndInfo.jsx';
-
 import {
   calculateDiscountAmount,
   calculateEarnedPoints,
@@ -16,7 +15,6 @@ import './customer-kiosk.css';
 import './high-contrast-customer-kiosk.css';
 import './rewards.css';
 
-// 1. Accepts 'isHighContrast' and 'setIsHighContrast' as shared incoming props instead of managing a duplicate local state
 export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, fontScale = 1, setFontScale }) {
   const order = useKioskOrder();
   const {
@@ -56,23 +54,6 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/auth/me', { signal: controller.signal })
-      .then(async response => {
-        if (!response.ok) throw new Error('Account status could not be checked.');
-        return response.json();
-      })
-      .then(data => setCustomerSignedIn(Boolean(data.authenticated)))
-      .catch(err => {
-        if (err.name !== 'AbortError') setAccountMessage(err.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setCheckingCustomer(false);
-      });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
     async function loadMenu() {
       try {
         const response = await fetch('/api/kiosk/menu', { signal: controller.signal });
@@ -109,7 +90,6 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         if (error.name !== 'AbortError') setWeather({ text: 'A lovely day for boba!', icon: '🧋', kind: 'mild' });
       }
     };
-    // Use the kiosk's local area by default; browser location can refine the recommendation.
     const fallback = () => loadWeather(30.62798, -96.33441);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -233,37 +213,18 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           <span style={isHighContrast ? { color: '#ffffff', fontWeight: '700' } : {}}>{weather.text}</span>
           <span className="pg-cloud" aria-hidden="true">{weather.icon}</span>
           {recommendedDrink && (
-            <button type="button" className="pg-weather-recommend" onClick={() => {
-              setEditingItem(null);
-              setSelected(recommendedDrink);
-            }} aria-label={`Customize recommended drink ${recommendedDrink.item_name}`}>
+            <button
+              type="button"
+              className="pg-weather-recommend"
+              onClick={() => {
+                setEditingItem(null);
+                setSelected(recommendedDrink);
+              }}
+              aria-label={`Customize recommended drink ${recommendedDrink.item_name}`}
+            >
               Try {recommendedDrink.item_name} <span aria-hidden="true">♡</span>
             </button>
           )}
-        </div>
-        <div className="pg-account">
-          {checkingCustomer ? (
-            <p role="status">Checking account…</p>
-          ) : customerSignedIn ? (
-            <>
-              <p>Signed in · future orders will be saved to your history</p>
-              <div className="pg-account-actions">
-                <button type="button" onClick={openOrderHistory} disabled={accountBusy}>My orders</button>
-                <button type="button" onClick={signOutCustomer} disabled={accountBusy}>Sign out</button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p>Order as a guest, or sign in to save orders to your history.</p>
-              <GoogleSignInButton
-                clientId={googleClientId}
-                onCredential={signInWithGoogle}
-                onError={setAccountMessage}
-              />
-              {accountBusy && <p role="status">Signing in…</p>}
-            </>
-          )}
-          {accountMessage && <p className="pg-account-message" role="alert">{accountMessage}</p>}
         </div>
       </header>
 
@@ -326,7 +287,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         </section>
         <KioskTicket
           order={order}
-          discountAmount={discountAmount}
+          toppings={toppings}
           submitting={submitting}
           isHighContrast={isHighContrast}
           onCheckout={() => setCheckoutOpen(true)}
@@ -373,14 +334,6 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           isHighContrast={isHighContrast}
           onClose={() => setCheckoutOpen(false)}
           onConfirm={submitOrder}
-        />
-      )}
-      {history.open && (
-        <CustomerOrderHistory
-          orders={history.orders}
-          loading={history.loading}
-          error={history.error}
-          onClose={() => setHistory(current => ({ ...current, open: false }))}
         />
       )}
     </main>
