@@ -14,6 +14,8 @@ export default function RewardsAuthModal({
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [activeField, setActiveField] = useState(null); // 'email' | 'password' | null
+    const [isUpperCase, setIsUpperCase] = useState(false);
     const [googleClientId, setGoogleClientId] = useState(
         () =>
             import.meta.env?.VITE_GOOGLE_CLIENT_ID ||
@@ -64,6 +66,8 @@ export default function RewardsAuthModal({
         if (!isOpen) return undefined;
         const previouslyFocused = document.activeElement;
         setError('');
+        setActiveField(null);
+        setIsUpperCase(false);
         const timer = setTimeout(() => {
             loginTabRef.current?.focus();
         }, 30);
@@ -81,6 +85,7 @@ export default function RewardsAuthModal({
         if (!isOpen) return undefined;
         const handleKey = event => {
             if (event.key === 'Escape' && !submitting) {
+                setActiveField(null);
                 onClose();
             }
         };
@@ -115,6 +120,29 @@ export default function RewardsAuthModal({
         }
     };
 
+    const handleVirtualKeyPress = char => {
+        const outputChar = isUpperCase ? char.toUpperCase() : char;
+        if (activeField === 'email') {
+            setEmail(prev => prev + outputChar);
+        } else if (activeField === 'password') {
+            setPassword(prev => prev + outputChar);
+        }
+    };
+
+    const handleVirtualBackspace = () => {
+        if (activeField === 'email') {
+            setEmail(prev => prev.slice(0, -1));
+        } else if (activeField === 'password') {
+            setPassword(prev => prev.slice(0, -1));
+        }
+    };
+
+    const handleCloseModal = () => {
+        setActiveField(null);
+        setIsUpperCase(false);
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     async function handleSubmit(event) {
@@ -135,6 +163,8 @@ export default function RewardsAuthModal({
             await loginWithForm({ mode, email: trimmedEmail, password });
             setEmail('');
             setPassword('');
+            setActiveField(null);
+            setIsUpperCase(false);
             onClose();
         } catch (err) {
             setError(err?.message || 'Unable to sign in right now.');
@@ -149,6 +179,8 @@ export default function RewardsAuthModal({
         setError('');
         try {
             await loginWithGoogleToken(credential);
+            setActiveField(null);
+            setIsUpperCase(false);
             onClose();
         } catch (err) {
             setError(err?.message || 'Google sign-in failed.');
@@ -204,11 +236,56 @@ export default function RewardsAuthModal({
             textAlign: 'left',
         };
 
+    const virtualKeyStyle = isHighContrast
+        ? {
+            flex: 1,
+            padding: '10px 4px',
+            fontSize: '18px',
+            fontWeight: '900',
+            borderRadius: '6px',
+            backgroundColor: '#1e003a',
+            color: '#ffffff',
+            border: '2px solid #ffffff',
+        }
+        : {
+            flex: 1,
+            padding: '10px 4px',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            borderRadius: '6px',
+            backgroundColor: '#ffffff',
+            color: '#3a1530',
+            border: '1px solid #cbbbc6',
+        };
+
+    const shiftButtonStyle = isHighContrast
+        ? {
+            ...virtualKeyStyle,
+            fontSize: '16px',
+            backgroundColor: isUpperCase ? '#ffb3df' : '#1e003a',
+            color: isUpperCase ? '#120024' : '#ffffff',
+            border: '2px solid #ffffff',
+        }
+        : {
+            ...virtualKeyStyle,
+            fontSize: '16px',
+            backgroundColor: isUpperCase ? '#572649' : '#ffffff',
+            color: isUpperCase ? '#ffffff' : '#3a1530',
+            border: isUpperCase ? '2px solid #3a1530' : '1px solid #cbbbc6',
+        };
+
+    const keyboardRows = [
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '@'],
+        ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '_', '-'],
+    ];
+
     return (
         <div
             className="pg-modal-backdrop pg-rewards-auth-backdrop"
             onMouseDown={event => {
-                if (event.target === event.currentTarget && !submitting) onClose();
+                if (event.target === event.currentTarget && !submitting) handleCloseModal();
             }}
         >
             <section
@@ -229,7 +306,7 @@ export default function RewardsAuthModal({
                 <button
                     className="pg-close"
                     type="button"
-                    onClick={onClose}
+                    onClick={handleCloseModal}
                     disabled={submitting}
                     aria-label="Close rewards sign in dialog"
                     style={{
@@ -326,11 +403,13 @@ export default function RewardsAuthModal({
                         <input
                             id="pg-rewards-email"
                             type="email"
+                            inputMode="email"
                             autoComplete="email"
                             required
                             placeholder="you@gmail.com"
                             value={email}
                             disabled={submitting}
+                            onFocus={() => setActiveField('email')}
                             onChange={e => setEmail(e.target.value)}
                             style={{ width: '100%', boxSizing: 'border-box' }}
                         />
@@ -346,10 +425,114 @@ export default function RewardsAuthModal({
                             placeholder="Enter password"
                             value={password}
                             disabled={submitting}
+                            onFocus={() => setActiveField('password')}
                             onChange={e => setPassword(e.target.value)}
                             style={{ width: '100%', boxSizing: 'border-box' }}
                         />
                     </div>
+
+                    {activeField && !submitting && (
+                        <div
+                            className="pg-popup-keyboard"
+                            role="group"
+                            aria-label="On-screen touch keyboard"
+                            style={{
+                                marginTop: '12px',
+                                marginBottom: '12px',
+                                padding: '12px',
+                                backgroundColor: isHighContrast ? '#120024' : '#f4eef2',
+                                border: isHighContrast ? '2px solid #ffffff' : '1px solid #cbbbc6',
+                                borderRadius: '10px',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '8px',
+                                }}
+                            >
+                                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                    Typing into: {activeField === 'email' ? 'Email' : 'Password'}
+                                </span>
+                                <button
+                                    type="button"
+                                    onMouseDown={e => e.preventDefault()}
+                                    onClick={() => setActiveField(null)}
+                                    style={{
+                                        padding: '4px 10px',
+                                        fontSize: '14px',
+                                        fontWeight: 'bold',
+                                        borderRadius: '6px',
+                                    }}
+                                >
+                                    Hide Keyboard ▼
+                                </button>
+                            </div>
+
+                            {keyboardRows.map((row, rowIndex) => (
+                                <div
+                                    key={rowIndex}
+                                    style={{
+                                        display: 'flex',
+                                        gap: '4px',
+                                        marginBottom: '6px',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {row.map(keyChar => {
+                                        const displayChar = isUpperCase ? keyChar.toUpperCase() : keyChar;
+                                        return (
+                                            <button
+                                                key={keyChar}
+                                                type="button"
+                                                onMouseDown={e => e.preventDefault()}
+                                                onClick={() => handleVirtualKeyPress(keyChar)}
+                                                style={virtualKeyStyle}
+                                            >
+                                                {displayChar}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                                <button
+                                    type="button"
+                                    aria-pressed={isUpperCase}
+                                    onMouseDown={e => e.preventDefault()}
+                                    onClick={() => setIsUpperCase(prev => !prev)}
+                                    style={shiftButtonStyle}
+                                >
+                                    {isUpperCase ? '⇧ CAPS ON' : '⇧ Caps'}
+                                </button>
+                                {activeField === 'email' && (
+                                    <button
+                                        type="button"
+                                        onMouseDown={e => e.preventDefault()}
+                                        onClick={() => {
+                                            if (activeField === 'email') {
+                                                setEmail(prev => prev + '@gmail.com');
+                                            }
+                                        }}
+                                        style={{ ...virtualKeyStyle, fontSize: '16px' }}
+                                    >
+                                        @gmail.com
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onMouseDown={e => e.preventDefault()}
+                                    onClick={handleVirtualBackspace}
+                                    style={{ ...virtualKeyStyle, fontSize: '16px' }}
+                                >
+                                    ⌫ Backspace
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {error && (
                         <div
@@ -383,7 +566,7 @@ export default function RewardsAuthModal({
                                 className="pg-rewards-skip-btn"
                                 style={{ fontSize: "26px", fontWeight: "bold", width: '100%', boxSizing: 'border-box' }}
                                 disabled={submitting}
-                                onClick={onClose}
+                                onClick={handleCloseModal}
                             >
                                 Skip for Now
                             </button>
