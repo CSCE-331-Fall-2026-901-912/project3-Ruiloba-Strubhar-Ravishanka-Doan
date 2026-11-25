@@ -15,6 +15,29 @@ import './customer-kiosk.css';
 import './high-contrast-customer-kiosk.css';
 import './rewards.css';
 
+// Sanitize any corrupted saved order in localStorage/sessionStorage so useKioskOrder never crashes on mount
+function sanitizeStoredKioskOrder() {
+  try {
+    for (const store of [window.localStorage, window.sessionStorage]) {
+      if (!store) continue;
+      for (let i = store.length - 1; i >= 0; i -= 1) {
+        const key = store.key(i);
+        if (!key || !key.toLowerCase().includes('kiosk')) continue;
+        const raw = store.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.items) ? parsed.items : null;
+        if (list && list.some(entry => !entry || (!entry.drink && entry.drinkId == null && entry.itemid == null))) {
+          store.removeItem(key);
+        }
+      }
+    }
+  } catch {
+    // Ignore storage access errors
+  }
+}
+sanitizeStoredKioskOrder();
+
 export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, fontScale = 1, setFontScale }) {
   const order = useKioskOrder();
   const {
@@ -38,6 +61,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [rewardsFeedback, setRewardsFeedback] = useState('');
   const [receipt, setReceipt] = useState(null);
   const [entryAuthOpen, setEntryAuthOpen] = useState(false);
 
@@ -100,6 +124,101 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
     } else fallback();
     return () => controller.abort();
   }, []);
+
+  // Automatically keep applied discounts valid if items/toppings/sizes are removed or changed on the ticket
+  useEffect(() => {
+    if (!user) return;
+    const totalDrinks = order.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+    const totalToppings = order.items.reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const tCount = Array.isArray(item.toppingIds) ? item.toppingIds.length : 0;
+      return sum + qty * tCount;
+    }, 0);
+    const largeDrinks = order.items.reduce(
+      (sum, item) => sum + (item.size === 'L' ? Number(item.quantity) || 0 : 0),
+      0
+    );
+
+    const curSizeUpgrade = Number(selectedDiscounts.size_upgrade) || 0;
+    const curFreeTopping = Number(selectedDiscounts.free_topping) || 0;
+    const curBogo = Number(selectedDiscounts.bogo_50) || 0;
+    const curFreeDrink = Number(selectedDiscounts.free_drink) || 0;
+
+    const nextSizeUpgrade = Math.min(curSizeUpgrade, largeDrinks);
+    const nextFreeTopping = Math.min(curFreeTopping, totalToppings);
+    const nextBogo = Math.min(curBogo, Math.floor(totalDrinks / 2));
+    const nextFreeDrink = Math.min(curFreeDrink, totalDrinks);
+
+    if (
+      nextSizeUpgrade !== curSizeUpgrade ||
+      nextFreeTopping !== curFreeTopping ||
+      nextBogo !== curBogo ||
+      nextFreeDrink !== curFreeDrink
+    ) {
+      const adjusted = {};
+      if (nextSizeUpgrade > 0) adjusted.size_upgrade = nextSizeUpgrade;
+      if (nextFreeTopping > 0) adjusted.free_topping = nextFreeTopping;
+      if (nextBogo > 0) adjusted.bogo_50 = nextBogo;
+      if (nextFreeDrink > 0) adjusted.free_drink = nextFreeDrink;
+      setSelectedDiscounts(adjusted);
+      setRewardsFeedback(
+        'Some applied rewards were adjusted because your order items, sizes, or toppings changed.'
+      );
+    }
+  }, [order.items, selectedDiscounts, setSelectedDiscounts, user]);
+
+  function handleUpgradeDrinksToLarge(unitIds = []) {
+    if (!Array.isArray(unitIds) || unitIds.length === 0) return;
+
+    const upgradeCountByKey = new Map();
+    for (const unitId of unitIds) {
+      const sepIdx = String(unitId).lastIndexOf('::');
+      const itemKey = sepIdx !== -1 ? String(unitId).slice(0, sepIdx) : String(unitId);
+      upgradeCountByKey.set(itemKey, (upgradeCountByKey.get(itemKey) || 0) + 1);
+    }
+
+    for (const [itemKey, countToUpgrade] of upgradeCountByKey.entries()) {
+      const targetItem = order.items.find(it => it.key === itemKey);
+      if (!targetItem || targetItem.size === 'L') continue;
+
+      const qty = Math.max(1, Number(targetItem.quantity) || 1);
+      const upgradeQty = Math.min(qty, countToUpgrade);
+      const remainingMediumQty = qty - upgradeQty;
+
+      // Look up full drink record from menu (or reconstruct it) so `drink.itemid` is ALWAYS defined in makeItem!
+      const drinkObj = targetItem.drink || drinks.find(d => Number(d.itemid) === Number(targetItem.drinkId)) || {
+        itemid: targetItem.drinkId,
+        item_name: targetItem.drinkName,
+        item_cost: targetItem.basePrice,
+      };
+
+      const makePayload = (nextSize, nextQty) => ({
+        drink: drinkObj,
+        itemid: drinkObj.itemid,
+        item_name: drinkObj.item_name,
+        item_cost: drinkObj.item_cost,
+        drinkId: targetItem.drinkId,
+        drinkName: targetItem.drinkName,
+        basePrice: targetItem.basePrice,
+        size: nextSize,
+        toppingIds: targetItem.toppingIds || [],
+        toppingNames: targetItem.toppingNames || [],
+        toppingsPrice: targetItem.toppingsPrice || 0,
+        quantity: nextQty,
+      });
+
+      if (remainingMediumQty === 0) {
+        order.edit(targetItem.key, makePayload('L', qty));
+      } else {
+        order.edit(targetItem.key, makePayload('M', remainingMediumQty));
+        order.add(makePayload('L', upgradeQty));
+      }
+    }
+
+    setRewardsFeedback(
+      `Upgraded ${unitIds.length} drink${unitIds.length === 1 ? '' : 's'} to Large for your Free Size Upgrade reward.`
+    );
+  }
 
   const recommendations = {
     hot: ['Mango Green Tea', 'Passion Fruit Green Tea', 'Rosehip Lemonade'],
@@ -178,6 +297,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         spentPoints,
       });
       setCheckoutOpen(false);
+      setRewardsFeedback('');
       order.clear();
     } catch (err) {
       const errMsg = `Order not confirmed: ${err.message}. Please check before retrying.`;
@@ -232,6 +352,32 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
         <div className="pg-alert" role="alert">
           {error}
           <button type="button" onClick={() => setError('')}>Dismiss</button>
+        </div>
+      )}
+
+      {rewardsFeedback && (
+        <div
+          className="pg-alert"
+          role="status"
+          aria-live="polite"
+          style={
+            isHighContrast
+              ? {
+                backgroundColor: '#1e003a',
+                color: '#ffb3df',
+                border: '3px solid #ffb3df',
+                fontWeight: '900',
+              }
+              : {
+                backgroundColor: '#fdf7fb',
+                color: '#3a1530',
+                border: '2px solid #572649',
+                fontWeight: '800',
+              }
+          }
+        >
+          <span>{rewardsFeedback}</span>
+          <button type="button" onClick={() => setRewardsFeedback('')}>Dismiss</button>
         </div>
       )}
 
@@ -290,6 +436,7 @@ export default function CustomerKioskPage({ isHighContrast, setIsHighContrast, f
           toppings={toppings}
           submitting={submitting}
           isHighContrast={isHighContrast}
+          onUpgradeDrinksToLarge={handleUpgradeDrinksToLarge}
           onCheckout={() => setCheckoutOpen(true)}
           onEdit={item => {
             const drink = drinks.find(d => Number(d.itemid) === item.drinkId);

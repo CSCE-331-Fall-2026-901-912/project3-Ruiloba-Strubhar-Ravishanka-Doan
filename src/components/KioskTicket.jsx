@@ -4,15 +4,87 @@ import UseRewardsModal from './UseRewardsModal.jsx';
 
 const money = amount => `$${Number(amount).toFixed(2)}`;
 
-export default function KioskTicket({ order, toppings = [], onCheckout, onEdit, submitting, isHighContrast }) {
+export default function KioskTicket({
+  order,
+  toppings = [],
+  onCheckout,
+  onEdit,
+  onUpgradeDrinksToLarge,
+  submitting,
+  isHighContrast,
+}) {
   const { user, selectedDiscounts, usedPoints } = useRewards();
   const [rewardsModalOpen, setRewardsModalOpen] = useState(false);
 
+  const itemsWithUnitPrice = order.items.map(item => ({
+    ...item,
+    unitPrice: order.unitPrice(item),
+  }));
+
   const discountAmount = user
-    ? calculateDiscountAmount(order.items, selectedDiscounts, toppings)
+    ? Math.min(order.subtotal, calculateDiscountAmount(itemsWithUnitPrice, selectedDiscounts, toppings))
     : 0;
   const rawTotal = order.subtotal + order.tax;
   const finalTotal = Math.max(0, Math.round((rawTotal - discountAmount) * 100) / 100);
+
+  function handleUpgradeDrinks(unitIds = []) {
+    if (typeof onUpgradeDrinksToLarge === 'function') {
+      onUpgradeDrinksToLarge(unitIds);
+      return;
+    }
+
+    if (!Array.isArray(unitIds) || unitIds.length === 0) return;
+
+    const upgradeCountByKey = new Map();
+    for (const unitId of unitIds) {
+      const sepIdx = String(unitId).lastIndexOf('::');
+      const itemKey = sepIdx !== -1 ? String(unitId).slice(0, sepIdx) : String(unitId);
+      upgradeCountByKey.set(itemKey, (upgradeCountByKey.get(itemKey) || 0) + 1);
+    }
+
+    for (const [itemKey, countToUpgrade] of upgradeCountByKey.entries()) {
+      const targetItem = order.items.find(it => it.key === itemKey);
+      if (!targetItem || targetItem.size === 'L') continue;
+
+      const qty = Math.max(1, Number(targetItem.quantity) || 1);
+      const upgradeQty = Math.min(qty, countToUpgrade);
+      const remainingMediumQty = qty - upgradeQty;
+
+      // Build drink & selection objects compatible with both 1-arg and 2-arg useKioskOrder signatures
+      const drinkObj = {
+        itemid: targetItem.drinkId,
+        item_name: targetItem.drinkName,
+        item_cost: targetItem.basePrice,
+      };
+
+      const makePayload = (nextSize, nextQty) => ({
+        ...drinkObj,
+        drinkId: targetItem.drinkId,
+        drinkName: targetItem.drinkName,
+        basePrice: targetItem.basePrice,
+        size: nextSize,
+        toppingIds: targetItem.toppingIds || [],
+        toppingNames: targetItem.toppingNames || [],
+        toppingsPrice: targetItem.toppingsPrice || 0,
+        quantity: nextQty,
+      });
+
+      const callEdit = (key, payload) => {
+        if (order.edit.length >= 2) {
+          order.edit(key, payload);
+        } else {
+          order.edit(key, payload);
+        }
+      };
+
+      if (remainingMediumQty === 0) {
+        callEdit(targetItem.key, makePayload('L', qty));
+      } else {
+        callEdit(targetItem.key, makePayload('M', remainingMediumQty));
+        order.add(makePayload('L', upgradeQty));
+      }
+    }
+  }
 
   return (
     <aside aria-label="Current order ticket" className="pg-ticket" style={isHighContrast ? { backgroundColor: '#1e003a', border: '4px solid #ffffff' } : {}}>
@@ -109,6 +181,8 @@ export default function KioskTicket({ order, toppings = [], onCheckout, onEdit, 
         isOpen={rewardsModalOpen}
         onClose={() => setRewardsModalOpen(false)}
         isHighContrast={isHighContrast}
+        order={order}
+        onUpgradeDrinksToLarge={handleUpgradeDrinks}
       />
     </aside>
   );

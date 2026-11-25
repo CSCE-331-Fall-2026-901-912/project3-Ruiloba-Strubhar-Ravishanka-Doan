@@ -84,6 +84,7 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
 
     let totalDiscount = 0;
 
+    // 1. Free Drink (100 pts) - cheapest base drink (excluding toppings)
     const freeDrinkCount = Math.min(
         Number(selectedDiscounts.free_drink) || 0,
         expandedDrinks.length
@@ -97,6 +98,7 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
         }
     }
 
+    // 2. Buy 2+ Drinks get one 50% off (75 pts) - 50% off lowest priced drink including toppings
     const maxBogoCount = Math.floor(expandedDrinks.length / 2);
     const bogoCount = Math.min(Number(selectedDiscounts.bogo_50) || 0, maxBogoCount);
     if (bogoCount > 0) {
@@ -108,20 +110,23 @@ export function calculateDiscountAmount(items = [], selectedDiscounts = {}, topp
         }
     }
 
-    const drinksWithToppings = expandedDrinks
-        .filter(d => d.toppingPrices.length > 0)
-        .sort((a, b) => a.toppingPrices[0] - b.toppingPrices[0]);
+    // 3. Free Topping (50 pts) - cheapest individual toppings across drinks in the order
+    const allToppingPrices = expandedDrinks
+        .flatMap(d => d.toppingPrices)
+        .sort((a, b) => a - b);
     const freeToppingCount = Math.min(
         Number(selectedDiscounts.free_topping) || 0,
-        drinksWithToppings.length
+        allToppingPrices.length
     );
     for (let i = 0; i < freeToppingCount; i += 1) {
-        totalDiscount += drinksWithToppings[i].toppingPrices[0];
+        totalDiscount += allToppingPrices[i];
     }
 
+    // 4. Free Size Upgrade to Large (25 pts) - $0.50 off per Large drink covered by upgrade
+    const largeDrinkCount = expandedDrinks.filter(d => d.size === 'L').length;
     const sizeUpgradeCount = Math.min(
         Number(selectedDiscounts.size_upgrade) || 0,
-        expandedDrinks.length
+        largeDrinkCount
     );
     totalDiscount += sizeUpgradeCount * 0.5;
 
