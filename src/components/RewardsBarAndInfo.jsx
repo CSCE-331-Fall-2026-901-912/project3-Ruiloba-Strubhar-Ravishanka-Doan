@@ -39,8 +39,18 @@ export default function RewardsBarAndInfo({ isHighContrast = false }) {
                         className="pg-rewards-points-heading"
                         style={isHighContrast ? { color: "#ffffff", fontWeight: "950" } : {}}
                     >
-                        {user ? `${clampedPoints} / 1,000 Points` : "0 / 1,000 Points (Log in to earn & use points)"}
+                        {user ? `${clampedPoints} / 1,000 Points` : "0 / 1,000 Points"}
                     </h2>
+
+                    {!user && (
+                        <h1
+                            className="pg-rewards-points-heading"
+                            style={isHighContrast ? { color: "#ffffff", fontWeight: "1050" } : {}}
+                        >
+                            **Log in or create an account for FREE to earn points**
+                        </h1>
+                    )}
+
                 </div>
                 {user && (
                     <span
