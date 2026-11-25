@@ -12,7 +12,6 @@ export default function RewardsAuthModal({
     const [mode, setMode] = useState('login'); // 'login' | 'signup'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [googleClientId, setGoogleClientId] = useState(
@@ -65,7 +64,6 @@ export default function RewardsAuthModal({
         if (!isOpen) return undefined;
         const previouslyFocused = document.activeElement;
         setError('');
-        setConfirmPassword('');
         const timer = setTimeout(() => {
             loginTabRef.current?.focus();
         }, 30);
@@ -131,23 +129,12 @@ export default function RewardsAuthModal({
             setError('Please enter your password.');
             return;
         }
-        if (mode === 'signup') {
-            if (!confirmPassword) {
-                setError('Please re-enter your password to confirm.');
-                return;
-            }
-            if (password !== confirmPassword) {
-                setError('Passwords do not match. Please make sure both passwords are the same.');
-                return;
-            }
-        }
         setSubmitting(true);
         setError('');
         try {
             await loginWithForm({ mode, email: trimmedEmail, password });
             setEmail('');
             setPassword('');
-            setConfirmPassword('');
             onClose();
         } catch (err) {
             setError(err?.message || 'Unable to sign in right now.');
@@ -289,7 +276,6 @@ export default function RewardsAuthModal({
                         style={{ ...getNormalTabStyle(mode === 'login', '140px'), fontSize: '20px' }}
                         onClick={() => {
                             setMode('login');
-                            setConfirmPassword('');
                             setError('');
                         }}
                     >
@@ -303,7 +289,6 @@ export default function RewardsAuthModal({
                         style={{ ...getNormalTabStyle(mode === 'signup', '160px'), fontSize: '20px' }}
                         onClick={() => {
                             setMode('signup');
-                            setConfirmPassword('');
                             setError('');
                         }}
                     >
@@ -365,23 +350,6 @@ export default function RewardsAuthModal({
                             style={{ width: '100%', boxSizing: 'border-box' }}
                         />
                     </div>
-
-                    {mode === 'signup' && (
-                        <div className="pg-rewards-field">
-                            <label htmlFor="pg-rewards-confirm-password">Confirm Password</label>
-                            <input
-                                id="pg-rewards-confirm-password"
-                                type="password"
-                                autoComplete="new-password"
-                                required
-                                placeholder="Re-enter password"
-                                value={confirmPassword}
-                                disabled={submitting}
-                                onChange={e => setConfirmPassword(e.target.value)}
-                                style={{ width: '100%', boxSizing: 'border-box' }}
-                            />
-                        </div>
-                    )}
 
                     {error && (
                         <div
