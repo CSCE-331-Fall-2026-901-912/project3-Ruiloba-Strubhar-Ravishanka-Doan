@@ -58,7 +58,7 @@
   min-height: 215px;
   padding: 22px 32px;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(140px, .85fr) minmax(0, 1fr) auto;
+  grid-template-columns: 1.25fr .85fr 1fr;
   align-items: center;
   gap: 20px
 }
@@ -101,89 +101,6 @@
   font-size: 4rem
 }
 
-.pg-account {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  max-width: 260px;
-  font-size: .9rem
-}
-
-.pg-account p {
-  margin-bottom: 0
-}
-
-.pg-account-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px
-}
-
-.pg-account-actions button {
-  border: 1px solid #b78bc6;
-  border-radius: 10px;
-  background: #fff;
-  color: var(--pg-ink);
-  min-height: 40px;
-  padding: 8px 16px;
-  font-weight: 700
-}
-
-.pg-google-signin {
-  width: 240px;
-  max-width: 100%;
-  min-height: 40px
-}
-
-.pg-account-actions button:disabled {
-  opacity: .6;
-  cursor: wait
-}
-
-.pg-account-note,
-.pg-account-message {
-  font-size: .85rem;
-  max-width: 250px
-}
-
-.pg-account-message {
-  color: #9b1c31
-}
-
-.pg-account-history {
-  width: min(100%, 620px)
-}
-
-.pg-account-history-list {
-  max-height: min(60vh, 500px);
-  overflow: auto;
-  padding-left: 24px
-}
-
-.pg-account-history-list > li {
-  border-top: 1px solid #d5b5df;
-  padding: 14px 0
-}
-
-.pg-account-order-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px
-}
-
-.pg-account-history-list time {
-  display: block;
-  margin-top: 4px;
-  color: #65566b;
-  font-size: .9rem
-}
-
-.pg-account-history-list ul {
-  padding-left: 20px;
-  margin-bottom: 0
-}
-
 .pg-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -221,7 +138,7 @@
 
 .pg-drinks {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 13px
 }
 
@@ -233,7 +150,6 @@
   align-items: center;
   text-align: left;
   gap: 10px;
-  min-width: 0;
   min-height: 134px;
   padding: 13px;
   box-shadow: 0 3px 12px #6d51730c;
@@ -256,15 +172,13 @@
 .pg-drink-copy {
   display: flex;
   flex-direction: column;
-  flex: 1;
   gap: 7px;
   min-width: 0
 }
 
 .pg-drink-copy strong {
   font-size: .92rem;
-  overflow-wrap: break-word;
-  word-break: normal
+  overflow-wrap: break-word
 }
 
 .pg-drink-copy small {
@@ -567,27 +481,16 @@
 }
 
 @media(max-width:1100px) {
+  .pg-drinks {
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+  }
+
   .pg-hero {
-    grid-template-columns: 1fr auto
+    grid-template-columns: 1fr 1fr
   }
 
   .pg-weather {
     display: none
-  }
-
-  .pg-account {
-    grid-column: 1 / -1;
-    justify-self: start
-  }
-}
-
-@media(max-width:860px) {
-  .pg-layout {
-    grid-template-columns: 1fr
-  }
-
-  .pg-ticket {
-    min-height: 380px
   }
 }
 
@@ -609,9 +512,16 @@
     height: 110px
   }
 
-  .pg-account {
-    grid-column: 1;
-    max-width: 100%
+  .pg-layout {
+    grid-template-columns: 1fr
+  }
+
+  .pg-ticket {
+    min-height: 380px
+  }
+
+  .pg-drinks {
+    grid-template-columns: repeat(2, minmax(0, 1fr))
   }
 }
 
@@ -986,3 +896,10 @@
 .pg-drinks.pg-drinks--zoomed {
   grid-template-columns: 1fr !important
 }
+.pg-kiosk .pg-modal:has(.pg-customize-layout) { width: min(100%, 920px); }
+.pg-customize-layout { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start; }
+.pg-customize-preview { min-width:0; position:sticky;top:0; }
+.pg-customize-controls { min-width:0; }
+.pg-kiosk .pg-customize-preview .pg-animation { min-height:390px; }
+.pg-kiosk .pg-modal:has(.pg-customize-layout) .pg-close { z-index:2; }
+@media(max-width:700px){.pg-customize-layout{grid-template-columns:1fr;gap:12px}.pg-kiosk .pg-customize-preview .pg-animation{min-height:220px}.pg-customize-preview .pg-svg{max-height:200px}.pg-customize-preview{position:static}.pg-kiosk .pg-modal:has(.pg-customize-layout){padding:20px}}
