@@ -15,7 +15,7 @@ function drinkColor(name = '') {
 }
 
 /** Pass a stable drink identifier and an array of selected toppings. */
-export default function DrinkAnimation({ baseDrink, toppings = [], color, logo = 'PEARL GARDEN', size = 'M', sealing = false }) {
+export default function DrinkAnimation({ baseDrink, toppings = [], color, logo = 'PEARL GARDEN' }) {
   const [stage, setStage] = useState('idle');
   const [pourKey, setPourKey] = useState(0);
   const [toppingKey, setToppingKey] = useState(0);
@@ -64,7 +64,7 @@ export default function DrinkAnimation({ baseDrink, toppings = [], color, logo =
   const drops = [[142,-8],[166,-34],[187,-13],[207,-46],[155,-64],[197,-76],[177,-93]];
   return (
     <div className="pg-animation" aria-label={`${baseName || 'Empty'} drink animation`}>
-      <svg className={`pg-svg ${size === 'L' ? 'pg-svg-large' : 'pg-svg-medium'}`} viewBox="0 0 340 420" role="img" aria-label={`Animated ${baseName || 'bubble tea'} cup`}>
+      <svg className="pg-svg" viewBox="0 0 340 420" role="img" aria-label={`Animated ${baseName || 'bubble tea'} cup`}>
         <defs>
           <clipPath id="pg-cup-interior"><path d="M104 133 L236 133 L221 350 Q170 366 119 350 Z" /></clipPath>
           <linearGradient id="pg-glass" x1="0" y1="0" x2="1" y2="0"><stop stopColor="#fff" stopOpacity=".34"/><stop offset=".45" stopColor="#fff" stopOpacity=".05"/><stop offset="1" stopColor="#fff" stopOpacity=".3"/></linearGradient>
@@ -83,17 +83,11 @@ export default function DrinkAnimation({ baseDrink, toppings = [], color, logo =
           <ellipse cx="170" cy="130" rx="71" ry="9" fill="#fff" fillOpacity=".45" stroke="#b9a9a0" strokeWidth="3"/>
           <g className="pg-logo"><text x="170" y="243" textAnchor="middle" fontSize="13" fontWeight="800" letterSpacing="1.2" fill="#35654a">{logo}</text><path d="M147 253 Q170 269 193 253" fill="none" stroke="#35654a" strokeWidth="2"/></g>
         </g>
-        {sealing && <g className="pg-sealing-lid">
-          <ellipse cx="170" cy="126" rx="76" ry="14" fill="#e9d6eb" stroke="#a877ad" strokeWidth="3" />
-          <ellipse cx="170" cy="123" rx="68" ry="10" fill="#f8eaf5" stroke="#bc93c6" strokeWidth="1.5" />
-          <text x="170" y="127" textAnchor="middle" fontSize="10" fontWeight="800" letterSpacing="1.2" fill="#6d467a">PEARL GARDEN</text>
-          <path d="M111 130 Q170 143 229 130" fill="none" stroke="#b789bd" strokeWidth="4" strokeLinecap="round" />
-        </g>}
         {stage === 'pour' && <g key={pourKey} className="pg-pour-stream" fill={fill}><path d="M161 -10 Q155 28 161 62 L158 143 Q170 153 180 143 L177 62 Q183 28 178 -10 Z"/><ellipse cx="169" cy="147" rx="12" ry="5" opacity=".7"/></g>}
         {activeTopping && <g key={toppingKey} className="pg-falling-toppings">{drops.map(([x,y],i) => <circle key={i} cx={x} cy={y} r={/jelly|pudding|aloe/i.test(activeTopping) ? 7 : 6} fill={/jelly|pudding|aloe/i.test(activeTopping) ? '#e9b66d' : '#342526'} style={{animationDelay:`${i*75}ms`}}/>)}</g>}
         {activeTopping && <g className="pg-splash"><path d="M145 155 Q156 139 165 155 M175 154 Q188 136 199 154" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".8"/></g>}
       </svg>
-      <div className="pg-animation-caption">{sealing ? 'Sealing your drink…' : stage === 'spin' ? 'Getting your cup ready…' : stage === 'pour' ? `Pouring ${baseName}…` : activeTopping ? `Adding ${activeTopping}…` : baseId ? 'Made just for you ✨' : 'Choose your drink to begin'}</div>
+      <div className="pg-animation-caption">{stage === 'spin' ? 'Getting your cup ready…' : stage === 'pour' ? `Pouring ${baseName}…` : activeTopping ? `Adding ${activeTopping}…` : baseId ? 'Made just for you ✨' : 'Choose your drink to begin'}</div>
     </div>
   );
 }

@@ -8,8 +8,6 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
   const [selectedToppingIds, setSelectedToppingIds] = useState(initialIds);
   const [size, setSize] = useState(editingItem?.size ?? 'M');
   const [quantity, setQuantity] = useState(editingItem?.quantity ?? 1);
-  const [sealing, setSealing] = useState(false);
-  const sealTimer = useRef(null);
 
   const modalRef = useRef(null);
   const closeRef = useRef(null);
@@ -20,8 +18,6 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
-
-  useEffect(() => () => clearTimeout(sealTimer.current), []);
 
   const handleModalKeyDown = (event) => {
     if (event.key !== 'Tab' || !modalRef.current) return;
@@ -76,7 +72,7 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
         <p className="pg-muted">Base price ${Number(drink.item_cost).toFixed(2)}</p>
 
         <div className="pg-customize-layout">
-          <div className="pg-customize-preview"><DrinkAnimation baseDrink={drink} toppings={selectedToppings} size={size} sealing={sealing} /></div>
+          <div className="pg-customize-preview"><DrinkAnimation baseDrink={drink} toppings={selectedToppings} /></div>
           <div className="pg-customize-controls">
         <div style={{ marginBottom: "20px" }}>
           <span id="pg-toppings-label" className="pg-label-heading" style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600" }}>Toppings</span>
@@ -158,15 +154,10 @@ export default function KioskCustomizeModal({ drink, toppings, onClose, onAdd, e
         <button
           className="pg-primary"
           type="button"
-          onClick={() => {
-            if (sealing) return;
-            setSealing(true);
-            sealTimer.current = setTimeout(() => onAdd({ drink, toppings: selectedToppings, size, quantity }), 1000);
-          }}
-          disabled={sealing}
+          onClick={() => onAdd({ drink, toppings: selectedToppings, size, quantity })}
           aria-label={`${editingItem ? 'Save changes' : 'Add to order'}. Total price is $${(unit * quantity).toFixed(2)}`}
         >
-          {sealing ? 'Sealing your drink…' : editingItem ? 'Save changes' : 'Add to order'} · ${(unit * quantity).toFixed(2)}
+          {editingItem ? 'Save changes' : 'Add to order'} · ${(unit * quantity).toFixed(2)}
         </button>
           </div>
         </div>
