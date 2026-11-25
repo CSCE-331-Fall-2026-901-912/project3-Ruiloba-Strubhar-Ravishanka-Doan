@@ -90,6 +90,49 @@ html,
     font-weight: 950 !important;
 }
 
+/* Free Size Upgrade Drink Selection Choices (High-Contrast Selected vs Unselected) */
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice,
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice {
+    background-color: #1e003a !important;
+    color: #ffffff !important;
+    border: 2px dashed #ffffff !important;
+    font-weight: 800 !important;
+}
+
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice span,
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice span {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice.selected,
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice[aria-pressed="true"],
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice.selected,
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice[aria-pressed="true"] {
+    background-color: #ffb3df !important;
+    color: #120024 !important;
+    border: 4px solid #ffffff !important;
+    box-shadow: 0 0 0 2px #ffb3df !important;
+    font-weight: 950 !important;
+}
+
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice.selected span,
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice[aria-pressed="true"] span,
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice.selected span,
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice[aria-pressed="true"] span {
+    color: #120024 !important;
+    font-weight: 950 !important;
+}
+
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice.selected span:last-child,
+.pg-kiosk.high-contrast .pg-upgrade-drink-choice[aria-pressed="true"] span:last-child,
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice.selected span:last-child,
+.pg-use-rewards-modal.high-contrast .pg-upgrade-drink-choice[aria-pressed="true"] span:last-child {
+    background-color: #120024 !important;
+    color: #ffffff !important;
+    border: 2px solid #120024 !important;
+}
+
 /* Main panel blocks */
 .pg-kiosk.high-contrast .pg-menu-panel section,
 .pg-kiosk.high-contrast .pg-menu-panel,
@@ -323,8 +366,6 @@ html,
 .pg-contrast-toggle-btn:active {
     transform: scale(0.98) !important;
 }
-
-/* high-contrast-customer-kiosk.css */
 
 /* ==========================================================================
    ORDER CONFIRMED MODAL - FULL HIGH CONTRAST STYLE

@@ -23,7 +23,9 @@ function expandOrderUnits(items = []) {
                 unitId: `${item.key}::${idx}`,
                 itemKey: item.key,
                 unitIndex: idx,
+                drinkId: item.drinkId,
                 drinkName: drinkLabel,
+                toppingIdsKey: Array.isArray(item.toppingIds) ? [...item.toppingIds].sort().join(",") : "",
                 size: item.size || "M",
                 toppingCount,
                 toppingLabel,
@@ -43,6 +45,7 @@ export default function UseRewardsModal({
     const { points, selectedDiscounts, setSelectedDiscounts } = useRewards();
     const [draftCounts, setDraftCounts] = useState({});
     const [selectedUpgradeIds, setSelectedUpgradeIds] = useState([]);
+    const [savedUpgradeChoices, setSavedUpgradeChoices] = useState([]);
     const [notice, setNotice] = useState("");
     const [infoBanner, setInfoBanner] = useState("");
 
@@ -71,12 +74,62 @@ export default function UseRewardsModal({
     useEffect(() => {
         if (isOpen && !wasOpenRef.current) {
             setDraftCounts({ ...selectedDiscounts });
-            setSelectedUpgradeIds([]);
+
+            const savedUpgradeCount = Number(selectedDiscounts.size_upgrade) || 0;
+            if (savedUpgradeCount > 0) {
+                const matchedIds = [];
+                const usedUnitIds = new Set();
+
+                // 1. Try matching previously saved choices by exact unitId first, then by drink signature (upgraded to L)
+                for (const saved of savedUpgradeChoices) {
+                    if (matchedIds.length >= savedUpgradeCount) break;
+                    const exact = drinkUnits.find(
+                        (u) => !usedUnitIds.has(u.unitId) && u.unitId === saved.unitId
+                    );
+                    if (exact) {
+                        matchedIds.push(exact.unitId);
+                        usedUnitIds.add(exact.unitId);
+                        continue;
+                    }
+                    const bySignature = drinkUnits.find(
+                        (u) =>
+                            !usedUnitIds.has(u.unitId) &&
+                            String(u.drinkId) === String(saved.drinkId) &&
+                            u.toppingIdsKey === saved.toppingIdsKey &&
+                            u.size === "L"
+                    ) || drinkUnits.find(
+                        (u) =>
+                            !usedUnitIds.has(u.unitId) &&
+                            String(u.drinkId) === String(saved.drinkId) &&
+                            u.toppingIdsKey === saved.toppingIdsKey
+                    );
+                    if (bySignature) {
+                        matchedIds.push(bySignature.unitId);
+                        usedUnitIds.add(bySignature.unitId);
+                    }
+                }
+
+                // 2. Fallback: pre-select existing Large drinks if no prior saved choice matched
+                if (matchedIds.length < savedUpgradeCount) {
+                    for (const u of drinkUnits) {
+                        if (matchedIds.length >= savedUpgradeCount) break;
+                        if (!usedUnitIds.has(u.unitId) && u.size === "L") {
+                            matchedIds.push(u.unitId);
+                            usedUnitIds.add(u.unitId);
+                        }
+                    }
+                }
+
+                setSelectedUpgradeIds(matchedIds);
+            } else {
+                setSelectedUpgradeIds([]);
+            }
+
             setNotice("");
             setInfoBanner("");
         }
         wasOpenRef.current = isOpen;
-    }, [isOpen, selectedDiscounts]);
+    }, [isOpen, selectedDiscounts, savedUpgradeChoices, drinkUnits]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -117,7 +170,6 @@ export default function UseRewardsModal({
     const remainingPoints = Math.max(0, points - totalDraftCost);
 
     const sizeUpgradeCount = Number(draftCounts.size_upgrade) || 0;
-    const neededLargeUpgrades = Math.max(0, sizeUpgradeCount - existingLargeCount);
 
     // Allow selecting any drink in the order (both Medium and already-Large drinks) up to sizeUpgradeCount
     const validDrinkIds = new Set(drinkUnits.map((u) => u.unitId));
@@ -328,15 +380,11 @@ export default function UseRewardsModal({
                 return;
             }
 
-            // Determine which selected drinks are Medium and need to be converted to Large
             const unitById = new Map(drinkUnits.map((u) => [u.unitId, u]));
             const mediumIdsToUpgrade = chosenUnitIds.filter(
                 (id) => unitById.get(id)?.size !== "L"
             );
 
-            // Ensure at least `nextSizeUpgrade` Large drinks exist after applying:
-            // If user picked Medium drinks, upgrade them to Large; if any selected drink was already Large,
-            // it keeps its Large size and still receives the $0.50 Free Size Upgrade discount!
             const largeAfterUpgrade = existingLargeCount + mediumIdsToUpgrade.length;
             const stillShort = Math.max(0, nextSizeUpgrade - largeAfterUpgrade);
             if (stillShort > 0) {
@@ -347,9 +395,22 @@ export default function UseRewardsModal({
                 mediumIdsToUpgrade.push(...extraMediumIds);
             }
 
+            // Persist the user's chosen drinks so re-opening Use Rewards keeps them selected
+            const persistedChoices = chosenUnitIds
+                .map((id) => unitById.get(id))
+                .filter(Boolean)
+                .map((u) => ({
+                    unitId: u.unitId,
+                    drinkId: u.drinkId,
+                    toppingIdsKey: u.toppingIdsKey,
+                }));
+            setSavedUpgradeChoices(persistedChoices);
+
             if (mediumIdsToUpgrade.length > 0 && typeof onUpgradeDrinksToLarge === "function") {
                 onUpgradeDrinksToLarge(mediumIdsToUpgrade);
             }
+        } else {
+            setSavedUpgradeChoices([]);
         }
 
         setSelectedDiscounts({ ...draftCounts });
@@ -687,7 +748,7 @@ export default function UseRewardsModal({
                                                 : `Select ${sizeUpgradeCount} drink${sizeUpgradeCount === 1 ? "" : "s"} below (Medium drinks will be upgraded to Large; already-Large drinks still receive the $0.50 upgrade discount):`}
                                         </p>
 
-                                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                                             {drinkUnits.map((unit, idx) => {
                                                 const isAlreadyLarge = unit.size === "L";
                                                 const isPickedForUpgrade = effectiveSelectedUpgradeIds.includes(unit.unitId);
@@ -697,23 +758,26 @@ export default function UseRewardsModal({
                                                         display: "flex",
                                                         justifyContent: "space-between",
                                                         alignItems: "center",
+                                                        gap: "12px",
                                                         width: "100%",
-                                                        padding: "10px 14px",
+                                                        padding: "12px 16px",
                                                         borderRadius: "8px",
                                                         fontSize: "18px",
-                                                        fontWeight: "800",
+                                                        fontWeight: "900",
                                                         textAlign: "left",
-                                                        backgroundColor: isPickedForUpgrade ? "#ffffff" : "#1e003a",
+                                                        backgroundColor: isPickedForUpgrade ? "#ffb3df" : "#1e003a",
                                                         color: isPickedForUpgrade ? "#120024" : "#ffffff",
-                                                        border: isPickedForUpgrade ? "3px solid #ffb3df" : "2px solid #ffffff",
+                                                        border: isPickedForUpgrade ? "4px solid #ffffff" : "2px dashed #ffffff",
+                                                        boxShadow: isPickedForUpgrade ? "0 0 0 2px #ffb3df" : "none",
                                                         cursor: "pointer",
                                                     }
                                                     : {
                                                         display: "flex",
                                                         justifyContent: "space-between",
                                                         alignItems: "center",
+                                                        gap: "12px",
                                                         width: "100%",
-                                                        padding: "10px 14px",
+                                                        padding: "12px 16px",
                                                         borderRadius: "8px",
                                                         fontSize: "18px",
                                                         fontWeight: isPickedForUpgrade ? "800" : "600",
@@ -726,23 +790,57 @@ export default function UseRewardsModal({
                                                         cursor: "pointer",
                                                     };
 
+                                                const pillStyle = isHighContrast
+                                                    ? {
+                                                        display: "inline-block",
+                                                        padding: "6px 12px",
+                                                        borderRadius: "999px",
+                                                        fontSize: "16px",
+                                                        fontWeight: "950",
+                                                        whiteSpace: "nowrap",
+                                                        backgroundColor: isPickedForUpgrade ? "#120024" : "#1e003a",
+                                                        color: isPickedForUpgrade ? "#ffffff" : "#ffb3df",
+                                                        border: isPickedForUpgrade ? "2px solid #120024" : "2px solid #ffb3df",
+                                                    }
+                                                    : {
+                                                        display: "inline-block",
+                                                        padding: "6px 12px",
+                                                        borderRadius: "999px",
+                                                        fontSize: "16px",
+                                                        fontWeight: "800",
+                                                        whiteSpace: "nowrap",
+                                                        backgroundColor: isPickedForUpgrade ? "#ffffff" : "#f5ebf2",
+                                                        color: "#3a1530",
+                                                        border: "2px solid #572649",
+                                                    };
+
                                                 return (
                                                     <button
                                                         key={unit.unitId}
                                                         type="button"
+                                                        className={`pg-upgrade-drink-choice ${isPickedForUpgrade ? "selected" : ""}`}
                                                         aria-pressed={isPickedForUpgrade}
                                                         onClick={() => handleToggleDrinkUpgrade(unit)}
                                                         style={btnStyle}
                                                     >
-                                                        <span>
+                                                        <span
+                                                            style={
+                                                                isHighContrast
+                                                                    ? {
+                                                                        color: isPickedForUpgrade ? "#120024" : "#ffffff",
+                                                                        fontWeight: "900",
+                                                                    }
+                                                                    : {}
+                                                            }
+                                                        >
                                                             #{idx + 1} {unit.drinkName} ({unit.size === "L" ? "Large" : "Medium"} · {unit.toppingLabel})
                                                         </span>
-                                                        <span>
+                                                        <span style={pillStyle}>
                                                             {isPickedForUpgrade
                                                                 ? isAlreadyLarge
-                                                                    ? "✓ Selected (Large Discount Applied)"
+                                                                    ? "✓ Selected (Large Discount)"
                                                                     : "✓ Selected (Upgrade to Large)"
-                                                                : "Choose Drink"}
+                                                                : "Select Drink"}
                                                         </span>
                                                     </button>
                                                 );
