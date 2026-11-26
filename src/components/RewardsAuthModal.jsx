@@ -12,9 +12,12 @@ export default function RewardsAuthModal({
     const [mode, setMode] = useState('login'); // 'login' | 'signup'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [activeField, setActiveField] = useState(null); // 'email' | 'password' | null
+    const [activeField, setActiveField] = useState(null); // 'email' | 'password' | 'confirmPassword' | null
     const [isUpperCase, setIsUpperCase] = useState(false);
     const [googleClientId, setGoogleClientId] = useState(
         () =>
@@ -68,6 +71,8 @@ export default function RewardsAuthModal({
         setError('');
         setActiveField(null);
         setIsUpperCase(false);
+        setShowPassword(false);
+        setShowConfirmPassword(false);
         const timer = setTimeout(() => {
             loginTabRef.current?.focus();
         }, 30);
@@ -126,6 +131,8 @@ export default function RewardsAuthModal({
             setEmail(prev => prev + outputChar);
         } else if (activeField === 'password') {
             setPassword(prev => prev + outputChar);
+        } else if (activeField === 'confirmPassword') {
+            setConfirmPassword(prev => prev + outputChar);
         }
     };
 
@@ -134,16 +141,25 @@ export default function RewardsAuthModal({
             setEmail(prev => prev.slice(0, -1));
         } else if (activeField === 'password') {
             setPassword(prev => prev.slice(0, -1));
+        } else if (activeField === 'confirmPassword') {
+            setConfirmPassword(prev => prev.slice(0, -1));
         }
     };
 
     const handleCloseModal = () => {
         setActiveField(null);
         setIsUpperCase(false);
+        setShowPassword(false);
+        setShowConfirmPassword(false);
         onClose();
     };
 
     if (!isOpen) return null;
+
+    const passwordsMismatch =
+        mode === 'signup' &&
+        confirmPassword.length > 0 &&
+        password !== confirmPassword;
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -157,12 +173,25 @@ export default function RewardsAuthModal({
             setError('Please enter your password.');
             return;
         }
+        if (mode === 'signup') {
+            if (!confirmPassword) {
+                setError('Please confirm your password.');
+                return;
+            }
+            if (password !== confirmPassword) {
+                setError('Passwords do not match. Please re-enter your password.');
+                return;
+            }
+        }
         setSubmitting(true);
         setError('');
         try {
             await loginWithForm({ mode, email: trimmedEmail, password });
             setEmail('');
             setPassword('');
+            setConfirmPassword('');
+            setShowPassword(false);
+            setShowConfirmPassword(false);
             setActiveField(null);
             setIsUpperCase(false);
             onClose();
@@ -236,6 +265,34 @@ export default function RewardsAuthModal({
             textAlign: 'left',
         };
 
+    const togglePasswordButtonStyle = isHighContrast
+        ? {
+            padding: '8px 14px',
+            minHeight: '44px',
+            minWidth: '72px',
+            fontSize: '16px',
+            fontWeight: '900',
+            borderRadius: '8px',
+            backgroundColor: '#1e003a',
+            color: '#ffffff',
+            border: '2px solid #ffffff',
+            cursor: 'pointer',
+            flexShrink: 0,
+        }
+        : {
+            padding: '8px 14px',
+            minHeight: '44px',
+            minWidth: '72px',
+            fontSize: '16px',
+            fontWeight: '700',
+            borderRadius: '8px',
+            backgroundColor: '#ffffff',
+            color: '#3a1530',
+            border: '2px solid #765c6f',
+            cursor: 'pointer',
+            flexShrink: 0,
+        };
+
     const virtualKeyStyle = isHighContrast
         ? {
             flex: 1,
@@ -280,6 +337,13 @@ export default function RewardsAuthModal({
         ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '@'],
         ['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '_', '-'],
     ];
+
+    const getActiveFieldLabel = () => {
+        if (activeField === 'email') return 'Email';
+        if (activeField === 'password') return 'Password';
+        if (activeField === 'confirmPassword') return 'Confirm Password';
+        return '';
+    };
 
     return (
         <div
@@ -353,6 +417,9 @@ export default function RewardsAuthModal({
                         style={{ ...getNormalTabStyle(mode === 'login', '140px'), fontSize: '20px' }}
                         onClick={() => {
                             setMode('login');
+                            setConfirmPassword('');
+                            setShowConfirmPassword(false);
+                            if (activeField === 'confirmPassword') setActiveField(null);
                             setError('');
                         }}
                     >
@@ -366,6 +433,8 @@ export default function RewardsAuthModal({
                         style={{ ...getNormalTabStyle(mode === 'signup', '160px'), fontSize: '20px' }}
                         onClick={() => {
                             setMode('signup');
+                            setConfirmPassword('');
+                            setShowConfirmPassword(false);
                             setError('');
                         }}
                     >
@@ -406,6 +475,9 @@ export default function RewardsAuthModal({
                             inputMode="email"
                             autoComplete="email"
                             required
+                            aria-required="true"
+                            aria-invalid={Boolean(error && !email.trim())}
+                            aria-describedby={error ? 'pg-rewards-auth-error' : undefined}
                             placeholder="you@gmail.com"
                             value={email}
                             disabled={submitting}
@@ -417,19 +489,96 @@ export default function RewardsAuthModal({
 
                     <div className="pg-rewards-field">
                         <label htmlFor="pg-rewards-password">Password</label>
-                        <input
-                            id="pg-rewards-password"
-                            type="password"
-                            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                            required
-                            placeholder="Enter password"
-                            value={password}
-                            disabled={submitting}
-                            onFocus={() => setActiveField('password')}
-                            onChange={e => setPassword(e.target.value)}
-                            style={{ width: '100%', boxSizing: 'border-box' }}
-                        />
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input
+                                id="pg-rewards-password"
+                                type={showPassword ? 'text' : 'password'}
+                                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                                required
+                                aria-required="true"
+                                aria-invalid={Boolean(error && !password)}
+                                aria-describedby={error ? 'pg-rewards-auth-error' : undefined}
+                                placeholder="Enter password"
+                                value={password}
+                                disabled={submitting}
+                                onFocus={() => setActiveField('password')}
+                                onChange={e => setPassword(e.target.value)}
+                                style={{ flex: 1, width: '100%', boxSizing: 'border-box' }}
+                            />
+                            <button
+                                type="button"
+                                aria-pressed={showPassword}
+                                aria-controls="pg-rewards-password"
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                disabled={submitting}
+                                onMouseDown={e => e.preventDefault()}
+                                onClick={() => setShowPassword(prev => !prev)}
+                                style={togglePasswordButtonStyle}
+                            >
+                                {showPassword ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
                     </div>
+
+                    {mode === 'signup' && (
+                        <div className="pg-rewards-field">
+                            <label htmlFor="pg-rewards-confirm-password">Confirm Password</label>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input
+                                    id="pg-rewards-confirm-password"
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    autoComplete="new-password"
+                                    required
+                                    aria-required="true"
+                                    aria-invalid={Boolean(
+                                        passwordsMismatch ||
+                                        (error && (!confirmPassword || password !== confirmPassword))
+                                    )}
+                                    aria-describedby={
+                                        [
+                                            passwordsMismatch ? 'pg-rewards-confirm-hint' : '',
+                                            error ? 'pg-rewards-auth-error' : '',
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ') || undefined
+                                    }
+                                    placeholder="Re-enter password"
+                                    value={confirmPassword}
+                                    disabled={submitting}
+                                    onFocus={() => setActiveField('confirmPassword')}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    style={{ flex: 1, width: '100%', boxSizing: 'border-box' }}
+                                />
+                                <button
+                                    type="button"
+                                    aria-pressed={showConfirmPassword}
+                                    aria-controls="pg-rewards-confirm-password"
+                                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                                    disabled={submitting}
+                                    onMouseDown={e => e.preventDefault()}
+                                    onClick={() => setShowConfirmPassword(prev => !prev)}
+                                    style={togglePasswordButtonStyle}
+                                >
+                                    {showConfirmPassword ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                            {passwordsMismatch && (
+                                <p
+                                    id="pg-rewards-confirm-hint"
+                                    role="status"
+                                    aria-live="polite"
+                                    style={{
+                                        margin: '6px 0 0',
+                                        fontSize: '15px',
+                                        fontWeight: '700',
+                                        color: isHighContrast ? '#ffb3df' : '#7a0924',
+                                    }}
+                                >
+                                    Passwords do not match yet.
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {activeField && !submitting && (
                         <div
@@ -454,7 +603,7 @@ export default function RewardsAuthModal({
                                 }}
                             >
                                 <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                    Typing into: {activeField === 'email' ? 'Email' : 'Password'}
+                                    Typing into: {getActiveFieldLabel()}
                                 </span>
                                 <button
                                     type="button"
@@ -536,6 +685,7 @@ export default function RewardsAuthModal({
 
                     {error && (
                         <div
+                            id="pg-rewards-auth-error"
                             ref={errorRef}
                             className="pg-alert pg-rewards-auth-error"
                             role="alert"
