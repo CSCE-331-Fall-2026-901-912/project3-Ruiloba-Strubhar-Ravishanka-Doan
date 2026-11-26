@@ -9,6 +9,15 @@ const COLORS = {
   'Coffee': '#957052', 'Matcha': '#9abf70', 'Lemon': '#e7d775'
 };
 
+const DRINK_COLORS_BY_ID = {
+  1: '#b98b60', 2: '#eee0c7', 3: '#e7b73c', 4: '#b8a477',
+  5: '#70452f', 6: '#d8b56c', 7: '#b5a578', 8: '#efae32',
+  9: '#d77e94', 10: '#b74f7d', 11: '#f5a46d', 12: '#e87e9c',
+  13: '#7b635a', 14: '#aa8ac8', 15: '#9d5963', 16: '#65504d',
+  17: '#a54d70', 18: '#a77445', 26: '#f1b24e', 27: '#e69c48',
+  28: '#8e5b40', 29: '#e5a73f'
+};
+
 function drinkColor(name = '') {
   const match = Object.entries(COLORS).find(([key]) => name.toLowerCase().includes(key.toLowerCase()));
   return match?.[1] || '#c99b78';
@@ -59,7 +68,7 @@ export default function DrinkAnimation({ baseDrink, toppings = [], color, logo =
   }, [selectedKey, baseId]);
 
   const hasBoba = selected.length > 0;
-  const fill = color || drinkColor(baseName);
+  const fill = color || DRINK_COLORS_BY_ID[Number(baseDrink?.itemid ?? baseDrink?.id)] || (typeof baseDrink === 'object' ? '#c49bd0' : drinkColor(baseName));
   const filled = stage === 'pour' || stage === 'ready';
   const pearls = [[129,337,8],[148,345,8],[167,337,8],[187,344,8],[207,336,8],[139,324,7],[158,327,8],[178,325,7],[198,322,7],[154,311,6],[183,310,6]];
   const drops = [[142,-8],[166,-34],[187,-13],[207,-46],[155,-64],[197,-76],[177,-93]];
