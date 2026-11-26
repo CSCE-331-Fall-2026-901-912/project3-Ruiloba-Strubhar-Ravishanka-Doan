@@ -19,7 +19,6 @@ export default function DrinkAnimation({ baseDrink, toppings = [], color, logo =
   const [stage, setStage] = useState('idle');
   const [pourKey, setPourKey] = useState(0);
   const [toppingKey, setToppingKey] = useState(0);
-  const [hasBoba, setHasBoba] = useState(false);
   const [activeTopping, setActiveTopping] = useState('');
   const prevToppings = useRef([]);
   const timers = useRef([]);
@@ -33,7 +32,6 @@ export default function DrinkAnimation({ baseDrink, toppings = [], color, logo =
   useEffect(() => {
     clearTimers();
     prevToppings.current = selected;
-    setHasBoba(selected.length > 0);
     setActiveTopping('');
     if (!baseId) { setStage('idle'); return clearTimers; }
     setStage('spin');
@@ -50,14 +48,17 @@ export default function DrinkAnimation({ baseDrink, toppings = [], color, logo =
     previous.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
     const added = selected.find(t => counts[t] ? (counts[t]--, false) : true);
     prevToppings.current = selected;
-    if (!added) return;
+    if (!added) {
+      if (selected.length === 0) setActiveTopping('');
+      return;
+    }
     setActiveTopping(added);
     setToppingKey(k => k + 1);
-    setHasBoba(true);
     const timeout = setTimeout(() => setActiveTopping(''), 1150);
     return () => clearTimeout(timeout);
   }, [selectedKey, baseId]);
 
+  const hasBoba = selected.length > 0;
   const fill = color || drinkColor(baseName);
   const filled = stage === 'pour' || stage === 'ready';
   const pearls = [[129,337,8],[148,345,8],[167,337,8],[187,344,8],[207,336,8],[139,324,7],[158,327,8],[178,325,7],[198,322,7],[154,311,6],[183,310,6]];
